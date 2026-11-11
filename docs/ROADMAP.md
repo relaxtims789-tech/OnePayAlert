@@ -16,7 +16,9 @@ Done. Every item below is built except real bank adapters, which are blocked on 
 - Transactions API: list with filters (date, outlet, connection, status, currency), detail, and summary totals.
 - Redis caching of principal revalidation. Tests cover idempotency, signature rejection, tenant scoping of events, and the production guard on the simulator.
 
-## Phase 3: Merchant web dashboard (Next.js, `apps/merchant-web`)
+## Phase 3: Merchant web dashboard (Next.js, `apps/merchant-web`) ✅
+Done. See PROJECT_STATUS.md. Export and reports moved to Phase 6.
+
 - `packages/ui` design system: Inter and Noto Sans Khmer, primary #0759B8, secondary #1670D5, surface #F5F7FA, plus status colours (success green, pending orange, failed red).
 - Login, registration, forgot/reset password, company switcher.
 - Dashboard cards and charts, live transaction feed (WebSocket), outlets, employees, bank connections, settings.

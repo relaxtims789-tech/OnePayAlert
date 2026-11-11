@@ -29,6 +29,12 @@ export const envSchema = z.object({
   /** AES-256-GCM key for bank credentials and webhook secrets. */
   DATA_ENCRYPTION_KEY: base64Key32,
   DATA_ENCRYPTION_KEY_ID: z.string().regex(/^[a-z0-9]{1,16}$/).default('k1'),
+  /** Merchant web app base URL (used in password reset links). */
+  WEB_APP_URL: z.string().url().default('http://localhost:3000'),
+  /** smtp = real delivery (required in demo/production). log = write to logs + in-memory outbox (dev/test). */
+  MAIL_DRIVER: z.enum(['smtp', 'log']).default('log'),
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().default('One PayAlert <no-reply@onepayalert.local>'),
   /** Optional: Firebase service account JSON, base64 encoded. Push is disabled when absent. */
   FIREBASE_SERVICE_ACCOUNT_BASE64: z.string().optional(),
   CORS_ORIGINS: z
@@ -57,6 +63,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   }
   if (live && env.DATA_ENCRYPTION_KEY === DEV_ENCRYPTION_KEY) {
     throw new Error(`Refusing to start in ${env.APP_ENV} with the development encryption key`);
+  }
+  if (live && (env.MAIL_DRIVER !== 'smtp' || !env.SMTP_URL)) {
+    throw new Error(`${env.APP_ENV} requires MAIL_DRIVER=smtp and SMTP_URL`);
   }
   if (env.APP_ENV === 'production' && env.QUEUE_DRIVER !== 'rabbitmq') {
     throw new Error('Production must use QUEUE_DRIVER=rabbitmq');

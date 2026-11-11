@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:dev", "-w", "@onepay/api"],
+      "port": 4100
+    },
+    {
+      "name": "merchant-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@onepay/merchant-web"],
+      "port": 3000
+    }
+  ]
+}

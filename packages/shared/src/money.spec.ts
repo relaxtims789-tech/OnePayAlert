@@ -28,5 +28,7 @@ describe('money', () => {
   it('formats for display', () => {
     expect(formatMoney(1250, 'USD')).toBe('$12.50');
     expect(formatMoney(4000000, 'KHR', 'en')).toContain('40,000');
+    expect(formatMoney(4000000, 'KHR', 'en')).toContain('៛');
+    expect(formatMoney(4000000, 'KHR', 'en')).not.toContain('KHR');
   });
 });

@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import request from 'supertest';
 import { API, PASSWORD, bearer, createTestApp, login, prismaOf, registerMerchant, uniqueEmail } from './helpers';
 
@@ -89,10 +90,34 @@ describe('Auth (e2e)', () => {
     await request(http).get(`${API}/auth/me`).set('Authorization', bearer(tokens)).expect(401);
     await request(http).get(`${API}/auth/me`).set('Authorization', bearer(r1.body.accessToken)).expect(200);
 
-    // Replaying the old refresh token is treated as theft: all sessions die.
+    // Replaying the old refresh token long after rotation is treated as theft: all sessions die.
+    const prisma = prismaOf(app);
+    const oldHash = createHash('sha256').update(tokens.refreshToken).digest('hex');
+    await prisma.session.update({
+      where: { refreshTokenHash: oldHash },
+      data: { revokedAt: new Date(Date.now() - 5 * 60_000) },
+    });
     await request(http).post(`${API}/auth/refresh`).send({ refreshToken: tokens.refreshToken }).expect(401);
     await request(http).get(`${API}/auth/me`).set('Authorization', bearer(r1.body.accessToken)).expect(401);
     await request(http).post(`${API}/auth/refresh`).send({ refreshToken: r1.body.refreshToken }).expect(401);
+  });
+
+  it('tolerates a just-rotated refresh token being re-sent (lost response) without signing out', async () => {
+    const { tokens } = await registerMerchant(app, 'Flaky Network Shop');
+    const first = await request(http).post(`${API}/auth/refresh`).send({ refreshToken: tokens.refreshToken }).expect(200);
+    // The client never saw `first` (dropped response) and retries with the old token.
+    const retry = await request(http).post(`${API}/auth/refresh`).send({ refreshToken: tokens.refreshToken }).expect(200);
+    expect(retry.body.refreshToken).not.toBe(first.body.refreshToken);
+    // Both lineages stay valid; nobody was signed out.
+    await request(http).get(`${API}/auth/me`).set('Authorization', bearer(first.body.accessToken)).expect(200);
+    await request(http).get(`${API}/auth/me`).set('Authorization', bearer(retry.body.accessToken)).expect(200);
+    await request(http).post(`${API}/auth/refresh`).send({ refreshToken: retry.body.refreshToken }).expect(200);
+  });
+
+  it('does not apply the grace window to tokens revoked by logout', async () => {
+    const { tokens } = await registerMerchant(app, 'Logout Grace Shop');
+    await request(http).post(`${API}/auth/logout`).send({ refreshToken: tokens.refreshToken }).expect(204);
+    await request(http).post(`${API}/auth/refresh`).send({ refreshToken: tokens.refreshToken }).expect(401);
   });
 
   it('logs out by revoking the refresh token and its session', async () => {

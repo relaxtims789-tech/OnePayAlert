@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > CAM Professional Technology · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-11 — end of Phase 2_
+_Last updated: 2026-11-11 — end of Phase 3_
 
 ## Phase overview
 
@@ -11,8 +11,8 @@ _Last updated: 2026-11-11 — end of Phase 2_
 |---|-------|--------|
 | 1 | Foundation: monorepo, shared types, DB schema, auth, tenancy, RBAC, outlets, employees, super-admin company control | ✅ **Done** |
 | 2 | Bank/gateway connections + transaction ingestion (webhooks, idempotency, RabbitMQ, Redis, WebSocket, FCM) | ✅ **Done** |
-| 3 | Merchant web dashboard (Next.js) | ⏳ Next |
-| 4 | CAM Super Admin dashboard (Next.js) | Not started |
+| 3 | Merchant web dashboard (Next.js) | ✅ **Done** |
+| 4 | CAM Super Admin dashboard (Next.js) | ⏳ Next |
 | 5 | Flutter mobile app (Android/iOS) | Not started |
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | Not started |
 | 7 | Soundbox devices over EMQX MQTT | Not started |
@@ -20,7 +20,74 @@ _Last updated: 2026-11-11 — end of Phase 2_
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 12 shared unit + 16 API unit + **39 API e2e** (real PostgreSQL, Redis and RabbitMQ). All passing, and stable across repeated runs.
+**Test totals:** 12 shared unit + 16 API unit + 13 web unit + **46 API e2e** (real PostgreSQL, Redis and RabbitMQ) + **11 browser e2e** (Playwright in Chrome against the real stack). All passing.
+
+---
+
+## Phase 3: what was built
+
+### Merchant web dashboard (`apps/merchant-web`, Next.js 16 + React 19 + Tailwind 4)
+| Page | What merchants can do |
+|------|-----------------------|
+| Sign in / Register / Forgot / Reset password | Self-service sign-up (14-day trial), sign in, emailed reset link |
+| Dashboard | Today's totals per currency, success and pending/failed counts, 7-day chart (USD/KHR), **live payment feed**, toast and optional sound plus spoken alert, onboarding prompt until a bank is connected |
+| Transactions | Date presets (today/7/30 days/all), status, currency and outlet filters, search, pagination, detail view |
+| Bank connections | Provider picker with honest "Live / Coming soon / Demo only" labels, connect, **webhook secret shown once** with copy buttons, rotate, disconnect, demo payment simulator |
+| Outlets | Create, edit, activate/deactivate |
+| Employees | Add with role and outlet restrictions, change role, remove access. You can only assign roles below your own, and never edit yourself. |
+| Settings | Company profile, my profile and language, change password, activity (audit) log |
+
+Every data view has loading, error (with retry), empty and success states. Navigation and buttons follow the same permission matrix the API enforces (`@onepay/shared`). The layout is responsive, with a sidebar on desktop and a slide-in menu on phones.
+
+### Design system (`packages/ui`)
+Tokens: primary `#0759B8`, secondary `#1670D5`, surface `#F5F7FA`, plus status green, orange and red. Fonts are Inter and Noto Sans Khmer (Khmer gets extra line height). Components: Button, Input, Select, Field (accessible label/error wiring), Card, Badge, StatCard, Table, Pagination, Segmented, Modal (focus handling, Escape, scroll lock), Toasts, Empty/Error states, Skeletons and the logo. It will be reused by the Super Admin dashboard in Phase 4.
+
+### Languages and money
+- **Khmer (default), English and Chinese.** A type-checked dictionary means a missing translation fails the build. Tests check that every key exists, nothing is blank, and placeholders match.
+- **Khmer dates** are formatted explicitly ("11 វិច្ឆិកា 14:12"). Many browsers lack Khmer date data and silently fall back to English.
+- **Profile language:** the signed-in user's profile language drives the UI, and switching it also changes their push-notification language.
+- **Money** is formatted from integer minor units. Riel shows as `៛`. Days and charts use Phnom Penh time.
+
+### Session security (backend-for-frontend)
+- The browser never holds tokens in JavaScript. Access and refresh tokens are **httpOnly, SameSite=Lax cookies**, and all API calls go through the same-origin proxy `/api/proxy/*`.
+- The proxy blocks token endpoints (`auth/login|register|refresh|logout|switch-company`) and webhooks. It rejects cross-site writes (Origin check). It refreshes an expired access token once, and parallel requests **share a single refresh**, because refresh tokens are single-use and reuse revokes every session.
+- The realtime socket gets a short-lived access token from `/api/session/token`. The refresh token never leaves the server.
+- Security headers are set: `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`.
+- **Refresh grace window (API):** a just-rotated refresh token re-sent within 30 s, typically after a response lost on a flaky mobile network, gets a fresh session instead of signing the user out of every device. Later reuse, or reuse of a logged-out token, is still treated as theft and revokes all sessions. Migration: `sessions.replaced_by_id`.
+
+### API additions
+| Endpoint | Notes |
+|----------|-------|
+| `PATCH auth/me` | Name, phone, language |
+| `POST auth/change-password` | Signs out all other sessions. A wrong current password returns 400, so a 401 always means "session invalid". |
+| `POST auth/forgot-password` | Always 202, so accounts can't be discovered. Single-use link, valid 30 min, only the newest link works, and only a SHA-256 hash is stored. |
+| `POST auth/reset-password` | Signs out every session |
+
+Mail uses `MAIL_DRIVER=smtp` (**required in demo and production**, enforced at startup) or `log` (dev/test, which keeps an in-memory outbox). Reset emails are localized km/en/zh. Migration: `password_reset_tokens`.
+
+### How to run the dashboard
+```bash
+docker compose up -d postgres redis rabbitmq
+npm run build:shared
+npm run dev:api        # http://localhost:4100
+npm run dev:web        # http://localhost:3000  (copy apps/merchant-web/.env.example to .env.local)
+npm run test -w @onepay/merchant-web       # unit tests
+npm run test:e2e:web                        # Playwright: builds API + web, uses local Google Chrome
+```
+
+### Fixes found by testing in a real browser
+- Server components were calling helpers from client-only modules (i18n, `cn`). They were split into plain modules.
+- The API build sometimes produced no output: incremental build info survived the deletion of `dist`. It now lives inside the output folder, and e2e uses a separate `dist-e2e`.
+- Riel displayed as "KHR 0" in English. It now uses the narrow symbol `៛`.
+- The language picker showed twice on phones (conflicting display classes). Fixed.
+- A web session was signed out everywhere after a refresh response never reached the browser. This led to the refresh grace window above.
+
+### Phase 3 known gaps
+- **Super Admin UI** is Phase 4. Platform endpoints exist but have no screens yet.
+- **Single-instance refresh dedupe:** the cache that makes parallel requests share one refresh is per server process. Running several web instances needs a shared (Redis) dedupe or a short reuse grace on the API (Phase 8).
+- **Employee onboarding:** still via a temporary password set by an admin. Invite links are planned.
+- **CSV/PDF export and reports** are Phase 6.
+- **Spoken alerts** work only where the device has a voice for the language. Otherwise only the chime plays. Many desktops have no Khmer voice.
 
 ---
 
@@ -147,7 +214,7 @@ npm test && npm run test:e2e
 
 ### Known gaps / decisions to revisit
 - **Employee onboarding:** an admin sets the initial password. Phase 2 or 3 should add invitation links or SMS OTP and a forced password change.
-- **No password-reset or change-password endpoint yet.** Planned for Phase 3, alongside the web login UI.
+- ~~No password-reset or change-password endpoint~~: resolved in Phase 3.
 - ~~Per-request DB revalidation cost~~: resolved in Phase 2 with a version-invalidated Redis cache.
 - **Postgres Row-Level Security** as a second line of tenant defence is planned for Phase 8.
 - **KHR minor unit:** uses the ISO 4217 exponent of 2 for interop. KHR is displayed with 0 decimals.

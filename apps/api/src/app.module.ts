@@ -12,6 +12,7 @@ import { AppConfigModule } from './config/config.module';
 import { EmployeesModule } from './employees/employees.module';
 import { HealthController } from './health/health.controller';
 import { InfraModule } from './infra/infra.module';
+import { MailModule } from './mail/mail.service';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OutletsModule } from './outlets/outlets.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -28,6 +29,7 @@ class AuditModule {}
     AppConfigModule,
     PrismaModule,
     InfraModule,
+    MailModule,
     AuditModule,
     ThrottlerModule.forRootAsync({
       inject: [AppConfig],

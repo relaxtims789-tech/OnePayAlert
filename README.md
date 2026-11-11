@@ -17,10 +17,12 @@ npm run build:shared
 npm run db:migrate
 npm run db:seed
 npm run dev:api
+npm run dev:web   # merchant dashboard on http://localhost:3000
 ```
 
 ## Tests
 ```bash
 npm test            # unit tests (shared + api)
 npm run test:e2e    # API end-to-end tests against the onepay_test database
+npm run test:e2e:web  # browser tests (Playwright + local Chrome) against the real stack
 ```

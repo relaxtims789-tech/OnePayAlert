@@ -93,3 +93,38 @@ export class SwitchCompanyDto {
   @IsUUID()
   companyId!: string;
 }
+
+export class UpdateProfileDto {
+  @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @MinLength(2) @MaxLength(160)
+  fullName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(trim)
+  @Matches(/^\+?[0-9]{8,15}$/, { message: 'phone must be 8-15 digits, optionally starting with +' })
+  phone?: string;
+
+  @ApiPropertyOptional({ enum: ['km', 'en', 'zh'] }) @IsOptional() @IsEnum(['km', 'en', 'zh'])
+  locale?: 'km' | 'en' | 'zh';
+}
+
+export class ChangePasswordDto {
+  @ApiProperty() @IsString() @MaxLength(128)
+  currentPassword!: string;
+
+  @ApiProperty() @IsString() @Matches(PASSWORD_REGEX, { message: PASSWORD_MESSAGE })
+  newPassword!: string;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty() @Transform(lower) @IsEmail() @MaxLength(254)
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty() @IsString() @MinLength(20) @MaxLength(200)
+  token!: string;
+
+  @ApiProperty() @IsString() @Matches(PASSWORD_REGEX, { message: PASSWORD_MESSAGE })
+  newPassword!: string;
+}

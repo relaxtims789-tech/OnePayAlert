@@ -6,7 +6,13 @@ const base = {
   JWT_ACCESS_SECRET: 'x'.repeat(40),
   DATA_ENCRYPTION_KEY: DEV_ENCRYPTION_KEY,
 };
-const prod = { ...base, APP_ENV: 'production', DATA_ENCRYPTION_KEY: realKey };
+const prod = {
+  ...base,
+  APP_ENV: 'production',
+  DATA_ENCRYPTION_KEY: realKey,
+  MAIL_DRIVER: 'smtp',
+  SMTP_URL: 'smtps://u:p@smtp.example.com',
+};
 
 describe('validateEnv', () => {
   it('applies defaults and parses CORS origins', () => {
@@ -32,5 +38,6 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...prod, DATA_ENCRYPTION_KEY: DEV_ENCRYPTION_KEY })).toThrow(/encryption key/);
     expect(() => validateEnv({ ...base, APP_ENV: 'demo' })).toThrow(/encryption key/);
     expect(() => validateEnv({ ...prod, QUEUE_DRIVER: 'inline' })).toThrow(/rabbitmq/);
+    expect(() => validateEnv({ ...prod, MAIL_DRIVER: 'log' })).toThrow(/MAIL_DRIVER=smtp/);
   });
 });

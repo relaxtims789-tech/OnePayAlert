@@ -2,11 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist",
-    // Keep incremental state inside the output dir: when the build deletes dist, it must
-    // also forget it was built, or tsc emits nothing.
-    "tsBuildInfoFile": "dist/.tsbuildinfo"
+    "outDir": "dist"
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "dist-e2e", "test", "prisma", "src/**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "test", "prisma", "src/**/*.spec.ts"]
 }

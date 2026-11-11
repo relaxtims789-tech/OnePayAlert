@@ -14,7 +14,6 @@ import {
 import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { PasswordService } from '../auth/password.service';
-import { PrincipalService } from '../auth/principal.service';
 import type { TenantUser } from '../common/auth-user';
 import type { PaginationQueryDto } from '../common/pagination.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -48,7 +47,6 @@ export class EmployeesService {
     private readonly prisma: PrismaService,
     private readonly passwords: PasswordService,
     private readonly audit: AuditService,
-    private readonly principals: PrincipalService,
   ) {}
 
   async list(user: TenantUser, q: PaginationQueryDto): Promise<Paginated<EmployeeDto>> {
@@ -193,7 +191,6 @@ export class EmployeesService {
       );
       return m;
     });
-    await this.principals.invalidateUser(target.userId);
     return toEmployeeDto(updated);
   }
 

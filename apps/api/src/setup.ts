@@ -2,15 +2,11 @@ import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppConfig } from './config/app-config.service';
-import { RedisIoAdapter } from './realtime/redis-io.adapter';
 
 export const API_PREFIX = 'api/v1';
 
-/**
- * Shared HTTP/WebSocket configuration used by main.ts and the e2e test harness.
- * The app must be created with `{ rawBody: true }` so webhook signatures can be verified.
- */
-export async function configureApp(app: INestApplication, opts: { swagger?: boolean } = {}): Promise<void> {
+/** Shared HTTP configuration used by main.ts and the e2e test harness. */
+export function configureApp(app: INestApplication, opts: { swagger?: boolean } = {}): void {
   const config = app.get(AppConfig);
 
   app.setGlobalPrefix(API_PREFIX);
@@ -24,10 +20,6 @@ export async function configureApp(app: INestApplication, opts: { swagger?: bool
     }),
   );
   app.enableShutdownHooks();
-
-  const io = new RedisIoAdapter(app);
-  await io.connectToRedis();
-  app.useWebSocketAdapter(io);
 
   if (opts.swagger) {
     const doc = new DocumentBuilder()

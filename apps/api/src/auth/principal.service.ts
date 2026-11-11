@@ -153,7 +153,7 @@ export class PrincipalService {
         throw new UnauthorizedException('Membership is no longer active');
       }
       if (membership.company.status === 'SUSPENDED' || membership.company.status === 'CLOSED') {
-        throw new ForbiddenException('This company account is suspended. Contact CAM support.');
+        throw new ForbiddenException('This company account is suspended. Contact MysoftKH support.');
       }
       companyRole = membership.role as CompanyRole;
       outletIds = membership.outlets.map((o) => o.outletId);

@@ -68,7 +68,7 @@ function LoginForm() {
             </Button>
           </form>
         </div>
-        <p className="mt-6 text-center text-xs text-white/40">© CAM Professional Technology</p>
+        <p className="mt-6 text-center text-xs text-white/40">© Mysoftkh</p>
       </div>
     </main>
   );

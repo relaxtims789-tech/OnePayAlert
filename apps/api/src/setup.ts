@@ -34,7 +34,7 @@ export async function configureApp(app: INestApplication, opts: { swagger?: bool
       .setTitle('One PayAlert API')
       .setDescription(
         'One Platform. Multiple Banks. Instant Payment Alerts.\n\n' +
-          'Multi-tenant REST API shared by the Flutter app, merchant dashboard and CAM super admin. ' +
+          'Multi-tenant REST API shared by the Flutter app, merchant dashboard and MysoftKH super admin. ' +
           'All tenant data is scoped to the company in the access token. ' +
           'Money values are integer minor units (e.g. USD cents).',
       )

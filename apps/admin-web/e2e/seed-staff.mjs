@@ -1,4 +1,4 @@
-// Upserts CAM staff accounts in the *_test database for browser tests (test values only).
+// Upserts MysoftKH staff accounts in the *_test database for browser tests (test values only).
 import { hash } from '@node-rs/argon2';
 import { PrismaClient } from '@prisma/client';
 

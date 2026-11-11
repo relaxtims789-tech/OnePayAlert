@@ -25,7 +25,7 @@ Done. See PROJECT_STATUS.md. Export and reports moved to Phase 6.
 - i18n for km, en and zh. Currency display for USD and KHR. Loading, error, empty and success states on every view.
 - Playwright e2e against the real API.
 
-## Phase 4: CAM Super Admin dashboard (Next.js, `apps/admin-web`) ✅
+## Phase 4: MysoftKH Super Admin dashboard (Next.js, `apps/admin-web`) ✅
 Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 
 - Merchant directory, approval, suspend and close, provider catalogue, plans, platform audit log, and system health.

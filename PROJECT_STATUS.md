@@ -1,7 +1,7 @@
 # One PayAlert — Project Status
 
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
-> CAM Professional Technology · Fintech / payment notification SaaS · Cambodia
+> Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
 _Last updated: 2026-11-11 — end of Phase 4_
 
@@ -12,7 +12,7 @@ _Last updated: 2026-11-11 — end of Phase 4_
 | 1 | Foundation: monorepo, shared types, DB schema, auth, tenancy, RBAC, outlets, employees, super-admin company control | ✅ **Done** |
 | 2 | Bank/gateway connections + transaction ingestion (webhooks, idempotency, RabbitMQ, Redis, WebSocket, FCM) | ✅ **Done** |
 | 3 | Merchant web dashboard (Next.js) | ✅ **Done** |
-| 4 | CAM Super Admin dashboard (Next.js) | ✅ **Done** |
+| 4 | MysoftKH Super Admin dashboard (Next.js) | ✅ **Done** |
 | 5 | Flutter mobile app (Android/iOS) | ⏳ Next (needs Flutter SDK installed) |
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | Not started |
 | 7 | Soundbox devices over EMQX MQTT | Not started |
@@ -26,8 +26,8 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
 ## Phase 4: what was built
 
-### CAM Super Admin console (`apps/admin-web`, port 3001)
-A separate Next.js app for CAM Professional Technology staff. It has a dark sidebar so it can't be mistaken for a merchant's dashboard, is not indexed by search engines, and supports Khmer, English and Chinese (English by default for staff).
+### MysoftKH Super Admin console (`apps/admin-web`, port 3001)
+A separate Next.js app for Mysoftkh staff. It has a dark sidebar so it can't be mistaken for a merchant's dashboard, is not indexed by search engines, and supports Khmer, English and Chinese (English by default for staff).
 
 | Page | What staff can do |
 |------|-------------------|
@@ -76,8 +76,8 @@ npm run test:e2e:admin
 ```
 
 ### Phase 4 known gaps
-- **No staff management UI:** CAM staff accounts are created by seed or database. Inviting and disabling staff, and enforcing 2FA, are planned for Phase 8 hardening.
-- **Merchant approval:** self-registered merchants start `ACTIVE`. Switching to "approval required" (start as `PENDING`) is a one-line policy change once CAM decides. The Approve flow already works.
+- **No staff management UI:** MysoftKH staff accounts are created by seed or database. Inviting and disabling staff, and enforcing 2FA, are planned for Phase 8 hardening.
+- **Merchant approval:** self-registered merchants start `ACTIVE`. Switching to "approval required" (start as `PENDING`) is a one-line policy change once MysoftKH decides. The Approve flow already works.
 - **Billing:** plan limits are not yet enforced, and there are no invoices or payments (Phase 6).
 
 ---

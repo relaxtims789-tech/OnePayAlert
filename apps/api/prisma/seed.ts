@@ -1,5 +1,5 @@
 /**
- * Seeds reference data (payment providers, plans) and, outside production, a CAM super admin.
+ * Seeds reference data (payment providers, plans) and, outside production, a MysoftKH super admin.
  * Idempotent: safe to run repeatedly.
  */
 import { hash } from '@node-rs/argon2';
@@ -69,7 +69,7 @@ async function main(): Promise<void> {
       update: {},
       create: {
         email: email.toLowerCase(),
-        fullName: 'CAM Super Admin',
+        fullName: 'MysoftKH Super Admin',
         passwordHash: await hash(password),
         platformRole: 'SUPER_ADMIN',
         locale: 'en',

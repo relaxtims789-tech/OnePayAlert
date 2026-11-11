@@ -212,13 +212,13 @@ describe('Tenant isolation & RBAC (e2e)', () => {
     });
   });
 
-  describe('CAM super admin', () => {
+  describe('MysoftKH super admin', () => {
     let superAdmin: AuthTokens;
 
     beforeAll(async () => {
       const email = uniqueEmail('superadmin');
       await prismaOf(app).user.create({
-        data: { email, fullName: 'CAM Admin', passwordHash: await hash(PASSWORD), platformRole: 'SUPER_ADMIN' },
+        data: { email, fullName: 'MysoftKH Admin', passwordHash: await hash(PASSWORD), platformRole: 'SUPER_ADMIN' },
       });
       superAdmin = await login(app, email);
     });

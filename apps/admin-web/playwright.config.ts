@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 import { API_PORT, WEB_PORT } from './e2e/fixtures';
 
 /**
- * CAM Super Admin e2e: real browser → admin Next.js (production build) → NestJS API (test env)
+ * MysoftKH Super Admin e2e: real browser → admin Next.js (production build) → NestJS API (test env)
  * → PostgreSQL/Redis/RabbitMQ. Uses its own ports so it can run beside the merchant suite.
  */
 export default defineConfig({

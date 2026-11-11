@@ -68,7 +68,7 @@ export function passwordResetEmail(locale: Locale, name: string, link: string): 
   const esc = (v: string) => v.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
   return {
     subject: c.subject,
-    text: `${name},\n\n${c.intro}\n\n${c.action}: ${link}\n\n${c.ignore}\n\nOne PayAlert · CAM Professional Technology`,
+    text: `${name},\n\n${c.intro}\n\n${c.action}: ${link}\n\n${c.ignore}\n\nOne PayAlert · Mysoftkh`,
     html:
       `<div style="font-family:Inter,'Noto Sans Khmer',Arial,sans-serif;max-width:520px;margin:auto;color:#0f172a">` +
       `<h2 style="color:#0759B8">One PayAlert</h2><p>${esc(name)},</p><p>${esc(c.intro)}</p>` +

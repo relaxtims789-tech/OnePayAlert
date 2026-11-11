@@ -3,7 +3,7 @@ import type { Messages } from './en';
 /** ភាសាខ្មែរ */
 export const km: Messages = {
   common: {
-    console: 'ផ្ទាំងគ្រប់គ្រង CAM',
+    console: 'ផ្ទាំងគ្រប់គ្រង MysoftKH',
     save: 'រក្សាទុក',
     cancel: 'បោះបង់',
     close: 'បិទ',
@@ -49,11 +49,11 @@ export const km: Messages = {
     account: 'គណនីរបស់ខ្ញុំ',
   },
   auth: {
-    title: 'ការចូលសម្រាប់បុគ្គលិក CAM',
-    subtitle: 'សម្រាប់តែបុគ្គលិក CAM Professional Technology ប៉ុណ្ណោះ។ រាល់សកម្មភាពត្រូវបានកត់ត្រា។',
+    title: 'ការចូលសម្រាប់បុគ្គលិក MysoftKH',
+    subtitle: 'សម្រាប់តែបុគ្គលិក Mysoftkh ប៉ុណ្ណោះ។ រាល់សកម្មភាពត្រូវបានកត់ត្រា។',
     password: 'ពាក្យសម្ងាត់',
     signIn: 'ចូលគណនី',
-    notStaff: 'គណនីនេះមិនមែនជាគណនីបុគ្គលិក CAM ទេ។',
+    notStaff: 'គណនីនេះមិនមែនជាគណនីបុគ្គលិក MysoftKH ទេ។',
     sessionExpired: 'វគ្គរបស់អ្នកបានបញ្ចប់។ សូមចូលគណនីម្តងទៀត។',
   },
   overview: {

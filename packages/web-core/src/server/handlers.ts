@@ -97,7 +97,7 @@ export function createProxyHandler(opts: ProxyOptions = {}) {
 export interface SessionOptions {
   /** Allow self-service registration through this app. */
   allowRegister?: boolean;
-  /** Only users with a CAM platform role may sign in (Super Admin dashboard). */
+  /** Only users with a MysoftKH platform role may sign in (Super Admin dashboard). */
   requirePlatformRole?: boolean;
 }
 
@@ -126,7 +126,7 @@ export function createSessionHandlers(opts: SessionOptions = {}) {
       if (!me?.platformRole) {
         // Do not leave a usable session behind for a non-staff account.
         await backendFetch('auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: tokens.refreshToken }) }).catch(() => null);
-        return json(403, { statusCode: 403, code: 'NOT_PLATFORM_STAFF', message: 'This account is not a CAM staff account.' });
+        return json(403, { statusCode: 403, code: 'NOT_PLATFORM_STAFF', message: 'This account is not a MysoftKH staff account.' });
       }
     }
     await setSessionCookies(tokens);

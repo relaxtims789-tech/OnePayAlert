@@ -1,6 +1,6 @@
 # One PayAlert
 
-**One Platform. Multiple Banks. Instant Payment Alerts.** A multi-tenant payment notification and merchant management SaaS for Cambodia, built by CAM Professional Technology.
+**One Platform. Multiple Banks. Instant Payment Alerts.** A multi-tenant payment notification and merchant management SaaS for Cambodia, built by Mysoftkh.
 
 - Current progress: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 - Phase plan: [docs/ROADMAP.md](docs/ROADMAP.md)
@@ -18,7 +18,7 @@ npm run db:migrate
 npm run db:seed
 npm run dev:api
 npm run dev:web   # merchant dashboard on http://localhost:3000
-npm run dev:admin # CAM Super Admin console on http://localhost:3001
+npm run dev:admin # MysoftKH Super Admin console on http://localhost:3001
 ```
 
 ## Tests

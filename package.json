@@ -1,7 +1,7 @@
 {
   "name": "one-payalert",
   "private": true,
-  "description": "One PayAlert — One Platform. Multiple Banks. Instant Payment Alerts. (CAM Professional Technology)",
+  "description": "One PayAlert — One Platform. Multiple Banks. Instant Payment Alerts. (Mysoftkh)",
   "workspaces": [
     "packages/*",
     "apps/api",

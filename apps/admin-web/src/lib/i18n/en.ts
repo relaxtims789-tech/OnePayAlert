@@ -1,7 +1,7 @@
-/** English — source of truth for the CAM Super Admin console. km.ts and zh.ts are type-checked against it. */
+/** English — source of truth for the MysoftKH Super Admin console. km.ts and zh.ts are type-checked against it. */
 export const en = {
   common: {
-    console: 'CAM Super Admin',
+    console: 'MysoftKH Super Admin',
     save: 'Save',
     cancel: 'Cancel',
     close: 'Close',
@@ -47,11 +47,11 @@ export const en = {
     account: 'My account',
   },
   auth: {
-    title: 'CAM staff sign-in',
-    subtitle: 'Restricted to CAM Professional Technology staff. All actions are audited.',
+    title: 'MysoftKH staff sign-in',
+    subtitle: 'Restricted to Mysoftkh staff. All actions are audited.',
     password: 'Password',
     signIn: 'Sign in',
-    notStaff: 'This account is not a CAM staff account.',
+    notStaff: 'This account is not a MysoftKH staff account.',
     sessionExpired: 'Your session has ended. Please sign in again.',
   },
   overview: {

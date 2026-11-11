@@ -3,7 +3,7 @@ import type { CompanyRole, CompanyStatus, PlatformRole, UserStatus } from './enu
 import type { Currency } from './money';
 import type { BankConnectionStatus, PaymentProviderDto, ProviderType } from './payments';
 
-/** Types for the CAM Super Admin (platform) API. Money is integer minor units. */
+/** Types for the MysoftKH Super Admin (platform) API. Money is integer minor units. */
 
 export type SubscriptionStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED';
 export type BillingInterval = 'MONTH' | 'YEAR';

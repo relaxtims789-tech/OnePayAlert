@@ -37,7 +37,7 @@ export function AuthFrame({ children }: { children: ReactNode }) {
             })}
           </ul>
         </div>
-        <p className="relative text-sm text-white/70">© CAM Professional Technology</p>
+        <p className="relative text-sm text-white/70">© Mysoftkh</p>
       </aside>
       <main className="flex flex-col px-4 py-6 sm:px-10">
         <div className="flex items-center justify-between">

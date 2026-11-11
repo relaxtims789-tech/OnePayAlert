@@ -60,7 +60,7 @@ export function toSubscriptionDto(s: Subscription & { plan: Plan }): Subscriptio
   };
 }
 
-/** CAM Professional Technology operations across all tenants. */
+/** Mysoftkh operations across all tenants. */
 @Injectable()
 export class PlatformCompaniesService {
   constructor(

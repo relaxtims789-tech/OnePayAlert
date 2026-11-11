@@ -11,7 +11,7 @@ import request from 'supertest';
 import { IngestionWorker } from '../src/payments/ingestion.worker';
 import { API, PASSWORD, bearer, createTestApp, login, prismaOf, registerMerchant, uniqueEmail, waitFor } from './helpers';
 
-describe('Platform / CAM Super Admin (e2e)', () => {
+describe('Platform / MysoftKH Super Admin (e2e)', () => {
   let app: INestApplication;
   let http: ReturnType<INestApplication['getHttpServer']>;
   let superAdmin: AuthTokens;
@@ -23,7 +23,7 @@ describe('Platform / CAM Super Admin (e2e)', () => {
   async function staff(role: 'SUPER_ADMIN' | 'SUPPORT') {
     const email = uniqueEmail(role.toLowerCase());
     await prismaOf(app).user.create({
-      data: { email, fullName: `CAM ${role}`, passwordHash: await hash(PASSWORD), platformRole: role, locale: 'en' },
+      data: { email, fullName: `MysoftKH ${role}`, passwordHash: await hash(PASSWORD), platformRole: role, locale: 'en' },
     });
     return login(app, email);
   }

@@ -1,0 +1,404 @@
+// One PayAlert — shared database schema for mobile, merchant web and super admin.
+//
+// Conventions
+//  * Every identifier is a UUID.
+//  * Every tenant-owned row carries `company_id` and every query MUST filter by it.
+//  * Money is stored as BIGINT minor units (`*_minor`) plus an ISO-4217 currency code.
+//  * Bank / gateway secrets are never stored in plain text and never returned by the API.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum CompanyStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum CompanyRole {
+  OWNER
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  CASHIER
+}
+
+enum PlatformRole {
+  SUPER_ADMIN
+  SUPPORT
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+enum Locale {
+  km
+  en
+  zh
+}
+
+enum Currency {
+  USD
+  KHR
+}
+
+enum ProviderType {
+  BANK
+  WALLET
+  GATEWAY
+}
+
+enum BankConnectionStatus {
+  PENDING
+  ACTIVE
+  ERROR
+  DISCONNECTED
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+enum TransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+enum DeviceStatus {
+  UNASSIGNED
+  ACTIVE
+  OFFLINE
+  DISABLED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum PushPlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+// ───────────────────────────── Tenancy & identity ─────────────────────────────
+
+model Company {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String        @db.VarChar(160)
+  legalName       String?       @map("legal_name") @db.VarChar(200)
+  email           String?       @db.VarChar(254)
+  phone           String?       @db.VarChar(32)
+  address         String?       @db.VarChar(500)
+  taxId           String?       @map("tax_id") @db.VarChar(64)
+  defaultCurrency Currency      @default(USD) @map("default_currency")
+  status          CompanyStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  outlets         Outlet[]
+  memberships     Membership[]
+  bankConnections BankConnection[]
+  transactions    Transaction[]
+  devices         Device[]
+  subscriptions   Subscription[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@map("companies")
+}
+
+model Outlet {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  name      String   @db.VarChar(160)
+  code      String   @db.VarChar(32)
+  address   String?  @db.VarChar(500)
+  phone     String?  @db.VarChar(32)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  membershipOutlets MembershipOutlet[]
+  bankConnections   BankConnection[]
+  transactions      Transaction[]
+  devices           Device[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("outlets")
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique @db.VarChar(254)
+  phone        String?       @db.VarChar(32)
+  fullName     String        @map("full_name") @db.VarChar(160)
+  passwordHash String        @map("password_hash")
+  locale       Locale        @default(km)
+  status       UserStatus    @default(ACTIVE)
+  platformRole PlatformRole? @map("platform_role")
+  lastLoginAt  DateTime?     @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  memberships Membership[]
+  sessions    Session[]
+  pushTokens  PushToken[]
+
+  @@map("users")
+}
+
+/// A user's role inside one company. A user may belong to several companies.
+model Membership {
+  id        String      @id @default(uuid()) @db.Uuid
+  companyId String      @map("company_id") @db.Uuid
+  userId    String      @map("user_id") @db.Uuid
+  role      CompanyRole
+  isActive  Boolean     @default(true) @map("is_active")
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outlets MembershipOutlet[]
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+/// Restricts a membership to specific outlets. No rows = access to all outlets.
+model MembershipOutlet {
+  membershipId String @map("membership_id") @db.Uuid
+  outletId     String @map("outlet_id") @db.Uuid
+  companyId    String @map("company_id") @db.Uuid
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  outlet     Outlet     @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  @@id([membershipId, outletId])
+  @@index([companyId])
+  @@map("membership_outlets")
+}
+
+/// Refresh-token session. Only a SHA-256 hash of the refresh token is stored.
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  companyId        String?   @map("company_id") @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash") @db.VarChar(128)
+  userAgent        String?   @map("user_agent") @db.VarChar(400)
+  ipAddress        String?   @map("ip_address") @db.VarChar(64)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model PushToken {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  token     String       @unique @db.VarChar(512)
+  platform  PushPlatform
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
+}
+
+// ───────────────────────────── Banks & payments ─────────────────────────────
+
+/// Platform-managed catalogue of supported banks / wallets / gateways (e.g. Bakong KHQR).
+model PaymentProvider {
+  id        String       @id @default(uuid()) @db.Uuid
+  code      String       @unique @db.VarChar(40)
+  name      String       @db.VarChar(120)
+  type      ProviderType
+  logoUrl   String?      @map("logo_url") @db.VarChar(500)
+  isActive  Boolean      @default(true) @map("is_active")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  connections BankConnection[]
+
+  @@map("payment_providers")
+}
+
+/// A merchant's authorized link to a bank/gateway account.
+/// `credentialCiphertext` holds envelope-encrypted secrets; it is never serialised to clients.
+model BankConnection {
+  id                   String               @id @default(uuid()) @db.Uuid
+  companyId            String               @map("company_id") @db.Uuid
+  outletId             String?              @map("outlet_id") @db.Uuid
+  providerId           String               @map("provider_id") @db.Uuid
+  displayName          String               @map("display_name") @db.VarChar(120)
+  accountName          String?              @map("account_name") @db.VarChar(160)
+  accountNumberMasked  String?              @map("account_number_masked") @db.VarChar(40)
+  currency             Currency
+  status               BankConnectionStatus @default(PENDING)
+  credentialCiphertext String?              @map("credential_ciphertext")
+  webhookSecretHash    String?              @map("webhook_secret_hash") @db.VarChar(128)
+  lastSyncedAt         DateTime?            @map("last_synced_at") @db.Timestamptz(6)
+  lastError            String?              @map("last_error") @db.VarChar(500)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  outlet       Outlet?         @relation(fields: [outletId], references: [id], onDelete: SetNull)
+  provider     PaymentProvider @relation(fields: [providerId], references: [id])
+  transactions Transaction[]
+
+  @@index([companyId])
+  @@index([providerId])
+  @@map("bank_connections")
+}
+
+model Transaction {
+  id                 String               @id @default(uuid()) @db.Uuid
+  companyId          String               @map("company_id") @db.Uuid
+  outletId           String?              @map("outlet_id") @db.Uuid
+  bankConnectionId   String               @map("bank_connection_id") @db.Uuid
+  providerTxnId      String               @map("provider_txn_id") @db.VarChar(128)
+  direction          TransactionDirection @default(CREDIT)
+  status             TransactionStatus
+  amountMinor        BigInt               @map("amount_minor")
+  currency           Currency
+  payerName          String?              @map("payer_name") @db.VarChar(160)
+  payerAccountMasked String?              @map("payer_account_masked") @db.VarChar(40)
+  reference          String?              @db.VarChar(160)
+  description        String?              @db.VarChar(500)
+  occurredAt         DateTime             @map("occurred_at") @db.Timestamptz(6)
+  receivedAt         DateTime             @default(now()) @map("received_at") @db.Timestamptz(6)
+  /// Provider payload kept for reconciliation (secrets stripped before storing).
+  rawPayload         Json?                @map("raw_payload")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  outlet         Outlet?        @relation(fields: [outletId], references: [id], onDelete: SetNull)
+  bankConnection BankConnection @relation(fields: [bankConnectionId], references: [id])
+
+  /// Idempotency: a provider event is stored once per connection.
+  @@unique([bankConnectionId, providerTxnId])
+  @@index([companyId, occurredAt(sort: Desc)])
+  @@index([companyId, outletId, occurredAt(sort: Desc)])
+  @@index([companyId, status])
+  @@map("transactions")
+}
+
+// ───────────────────────────── Soundbox devices ─────────────────────────────
+
+model Device {
+  id           String       @id @default(uuid()) @db.Uuid
+  companyId    String?      @map("company_id") @db.Uuid
+  outletId     String?      @map("outlet_id") @db.Uuid
+  serialNumber String       @unique @map("serial_number") @db.VarChar(64)
+  model        String       @db.VarChar(64)
+  firmware     String?      @db.VarChar(32)
+  mqttClientId String?      @unique @map("mqtt_client_id") @db.VarChar(128)
+  status       DeviceStatus @default(UNASSIGNED)
+  volume       Int          @default(80)
+  lastSeenAt   DateTime?    @map("last_seen_at") @db.Timestamptz(6)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  outlet  Outlet?  @relation(fields: [outletId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@map("devices")
+}
+
+// ───────────────────────────── Subscriptions ─────────────────────────────
+
+model Plan {
+  id           String          @id @default(uuid()) @db.Uuid
+  code         String          @unique @db.VarChar(40)
+  name         String          @db.VarChar(120)
+  priceMinor   BigInt          @map("price_minor")
+  currency     Currency        @default(USD)
+  interval     BillingInterval @default(MONTH)
+  maxOutlets   Int             @map("max_outlets")
+  maxEmployees Int             @map("max_employees")
+  maxBankConns Int             @map("max_bank_connections")
+  maxDevices   Int             @map("max_devices")
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                 String             @id @default(uuid()) @db.Uuid
+  companyId          String             @map("company_id") @db.Uuid
+  planId             String             @map("plan_id") @db.Uuid
+  status             SubscriptionStatus
+  currentPeriodStart DateTime           @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime           @map("current_period_end") @db.Timestamptz(6)
+  trialEndsAt        DateTime?          @map("trial_ends_at") @db.Timestamptz(6)
+  canceledAt         DateTime?          @map("canceled_at") @db.Timestamptz(6)
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan    Plan    @relation(fields: [planId], references: [id])
+
+  @@index([companyId, status])
+  @@map("subscriptions")
+}
+
+// ───────────────────────────── Audit ─────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String?  @map("company_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(80)
+  entityType  String   @map("entity_type") @db.VarChar(60)
+  entityId    String?  @map("entity_id") @db.Uuid
+  metadata    Json?
+  ipAddress   String?  @map("ip_address") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt(sort: Desc)])
+  @@index([actorUserId])
+  @@map("audit_logs")
+}

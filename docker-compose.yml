@@ -1,0 +1,49 @@
+# Local development infrastructure for One PayAlert.
+# Demo and production MUST use separate databases, brokers and credentials;
+# this file is for local development only.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: onepay-postgres
+    environment:
+      POSTGRES_USER: onepay
+      POSTGRES_PASSWORD: onepay_dev_password
+      POSTGRES_DB: onepay_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onepay -d onepay_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: onepay-redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: onepay-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: onepay
+      RABBITMQ_DEFAULT_PASS: onepay_dev_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # Future Soundbox integration (Phase 7). Not required for the API to run.
+  emqx:
+    image: emqx/emqx:5.8
+    container_name: onepay-emqx
+    profiles: ["soundbox"]
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+
+volumes:
+  pgdata:

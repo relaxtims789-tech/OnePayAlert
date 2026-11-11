@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.next/
+.turbo/
+*.log
+.env
+.env.*
+!.env.example
+!.env.test.example
+.DS_Store
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/build/
+*.tsbuildinfo

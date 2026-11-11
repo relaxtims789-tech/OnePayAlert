@@ -1,3 +1,5 @@
+// Must stay first: loads the APP_ENV-specific env file before Prisma can load `.env`.
+import './load-env';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -5,9 +7,9 @@ import { AppConfig } from './config/app-config.service';
 import { configureApp } from './setup';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(AppConfig);
-  configureApp(app, { swagger: !config.isProduction });
+  await configureApp(app, { swagger: !config.isProduction });
 
   const port = config.get('PORT');
   await app.listen(port);

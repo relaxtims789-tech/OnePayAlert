@@ -1,0 +1,61 @@
+/*
+ * One PayAlert design tokens (Tailwind CSS v4 theme).
+ * Import after `@import "tailwindcss";` in each app.
+ */
+@theme {
+  --color-brand: #0759b8;
+  --color-brand-hover: #064c9d;
+  --color-brand-2: #1670d5;
+  --color-brand-50: #eaf2fc;
+  --color-brand-100: #d3e4f8;
+
+  --color-surface: #f5f7fa;
+  --color-card: #ffffff;
+  --color-line: #e3e8ef;
+  --color-ink: #0f1b2d;
+  --color-ink-2: #475569;
+  --color-ink-3: #8794a7;
+
+  --color-success: #16a34a;
+  --color-success-50: #e9f8ef;
+  --color-pending: #f97316;
+  --color-pending-50: #fff1e6;
+  --color-failed: #dc2626;
+  --color-failed-50: #fdecec;
+  --color-info-50: #eef4ff;
+
+  --font-sans: var(--font-inter), var(--font-khmer), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 2px rgb(15 27 45 / 0.04), 0 4px 16px rgb(15 27 45 / 0.06);
+  --shadow-pop: 0 12px 40px rgb(15 27 45 / 0.18);
+
+  --animate-flash: flash 1.6s ease-out;
+  @keyframes flash {
+    0% {
+      background-color: var(--color-success-50);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  /* Khmer script needs extra line height for stacked vowels and subscripts. */
+  :lang(km) {
+    line-height: 1.7;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand-2);
+    outline-offset: 2px;
+  }
+}

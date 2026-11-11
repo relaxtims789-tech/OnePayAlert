@@ -4,19 +4,25 @@
   "description": "One PayAlert — One Platform. Multiple Banks. Instant Payment Alerts. (CAM Professional Technology)",
   "workspaces": [
     "packages/*",
-    "apps/api"
+    "apps/api",
+    "apps/merchant-web",
+    "apps/admin-web"
   ],
   "scripts": {
-    "build": "npm run build -w @onepay/shared && npm run build -w @onepay/api",
+    "build": "npm run build -w @onepay/shared && npm run build -w @onepay/api && npm run build -w @onepay/merchant-web && npm run build -w @onepay/admin-web",
     "build:shared": "npm run build -w @onepay/shared",
     "dev:api": "npm run start:dev -w @onepay/api",
-    "test": "npm run test -w @onepay/shared && npm run test -w @onepay/api",
+    "dev:web": "npm run dev -w @onepay/merchant-web",
+    "test": "npm run test -w @onepay/shared && npm run test -w @onepay/web-core && npm run test -w @onepay/api && npm run test -w @onepay/merchant-web && npm run test -w @onepay/admin-web",
     "test:e2e": "npm run test:e2e -w @onepay/api",
-    "typecheck": "npm run typecheck -w @onepay/shared && npm run typecheck -w @onepay/api",
+    "test:e2e:web": "npm run test:e2e -w @onepay/merchant-web",
+    "typecheck": "npm run typecheck -w @onepay/shared && npm run typecheck -w @onepay/ui && npm run typecheck -w @onepay/web-core && npm run typecheck -w @onepay/api && npm run typecheck -w @onepay/merchant-web && npm run typecheck -w @onepay/admin-web",
     "db:up": "docker compose up -d postgres redis rabbitmq",
     "db:down": "docker compose down",
     "db:migrate": "npm run prisma:migrate -w @onepay/api",
-    "db:seed": "npm run prisma:seed -w @onepay/api"
+    "db:seed": "npm run prisma:seed -w @onepay/api",
+    "dev:admin": "npm run dev -w @onepay/admin-web",
+    "test:e2e:admin": "npm run test:e2e -w @onepay/admin-web"
   },
   "engines": {
     "node": ">=22"

@@ -16,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { LoginDto, RegisterMerchantDto } from './dto';
 import { PasswordService } from './password.service';
+import { PrincipalService } from './principal.service';
 import { TokenService } from './token.service';
 
 export interface ClientInfo {
@@ -24,6 +25,8 @@ export interface ClientInfo {
 }
 
 const TRIAL_DAYS = 14;
+/** How long an already-rotated refresh token is accepted as a lost-response retry. */
+export const REFRESH_REUSE_GRACE_MS = 30_000;
 
 @Injectable()
 export class AuthService {
@@ -36,6 +39,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
+    private readonly principals: PrincipalService,
   ) {
     this.dummyHash = this.passwords.hash('timing-equaliser-password-0');
   }
@@ -182,8 +186,11 @@ export class AuthService {
   }
 
   /**
-   * Rotates the refresh token. Presenting an already-rotated (revoked) token is treated as
-   * token theft: every session of that user is revoked.
+   * Rotates the refresh token. Presenting an already-rotated token is treated as token theft
+   * (every session of the user is revoked) — except within a short grace window right after
+   * rotation, where it almost always means the client never received the new token (lost
+   * response on a flaky network, aborted request). That case gets a fresh session instead of
+   * signing the user out everywhere.
    */
   async refresh(refreshToken: string, client: ClientInfo): Promise<AuthTokens> {
     const hash = TokenService.hashRefreshToken(refreshToken);
@@ -193,12 +200,18 @@ export class AuthService {
     });
     if (!session) throw new UnauthorizedException('Invalid refresh token');
 
-    if (session.revokedAt) {
+    const withinGrace =
+      session.revokedAt !== null &&
+      session.replacedById !== null &&
+      Date.now() - session.revokedAt.getTime() <= REFRESH_REUSE_GRACE_MS;
+
+    if (session.revokedAt && !withinGrace) {
       this.logger.warn(`Refresh token reuse detected for user ${session.userId}; revoking sessions`);
       await this.prisma.session.updateMany({
         where: { userId: session.userId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
+      await this.principals.invalidateUser(session.userId);
       throw new UnauthorizedException('Refresh token has already been used');
     }
     if (session.expiresAt < new Date()) throw new UnauthorizedException('Refresh token expired');
@@ -219,13 +232,7 @@ export class AuthService {
 
     const next = this.tokens.newRefreshToken();
     const newSession = await this.prisma.$transaction(async (tx) => {
-      // Conditional revoke guards against two concurrent refreshes of the same token.
-      const revoked = await tx.session.updateMany({
-        where: { id: session.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-      if (revoked.count !== 1) throw new UnauthorizedException('Refresh token has already been used');
-      return tx.session.create({
+      const created = await tx.session.create({
         data: {
           userId: session.userId,
           companyId: session.companyId,
@@ -235,7 +242,19 @@ export class AuthService {
           expiresAt: this.tokens.refreshExpiry(),
         },
       });
+      if (withinGrace) {
+        this.logger.log(`Refresh token re-presented within grace window for user ${session.userId}`);
+        return created;
+      }
+      // Conditional revoke guards against two concurrent refreshes of the same token.
+      const revoked = await tx.session.updateMany({
+        where: { id: session.id, revokedAt: null },
+        data: { revokedAt: new Date(), replacedById: created.id },
+      });
+      if (revoked.count !== 1) throw new UnauthorizedException('Refresh token has already been used');
+      return created;
     });
+    if (!withinGrace) await this.principals.invalidateSession(session.id);
 
     return this.tokens.issue(
       {
@@ -250,10 +269,13 @@ export class AuthService {
   }
 
   async logout(refreshToken: string): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { refreshTokenHash: TokenService.hashRefreshToken(refreshToken), revokedAt: null },
-      data: { revokedAt: new Date() },
+    const session = await this.prisma.session.findUnique({
+      where: { refreshTokenHash: TokenService.hashRefreshToken(refreshToken) },
+      select: { id: true, revokedAt: true },
     });
+    if (!session || session.revokedAt) return;
+    await this.prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
+    await this.principals.invalidateSession(session.id);
   }
 
   /** Issues a new session scoped to another company the user belongs to. */
@@ -275,6 +297,7 @@ export class AuthService {
       where: { id: currentSessionId },
       data: { revokedAt: new Date() },
     });
+    await this.principals.invalidateSession(currentSessionId);
     return this.startSession(
       userId,
       companyId,

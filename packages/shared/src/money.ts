@@ -64,6 +64,8 @@ export function formatMoney(minor: bigint | number, currency: Currency, locale =
   return new Intl.NumberFormat(LOCALE_TAGS[locale] ?? 'en-US', {
     style: 'currency',
     currency,
+    // "៛" rather than "KHR" in every locale.
+    currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(asNumber);

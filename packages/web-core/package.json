@@ -1,0 +1,30 @@
+{
+  "name": "@onepay/web-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared web layer for the One PayAlert dashboards: cookie session (BFF), API proxy, API client, i18n engine and formatting.",
+  "exports": {
+    "./server": "./src/server/index.ts",
+    "./client": "./src/client/api.ts",
+    "./i18n": "./src/i18n/create.tsx",
+    "./locale": "./src/i18n/locale.ts",
+    "./format": "./src/format.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@onepay/shared": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  }
+}

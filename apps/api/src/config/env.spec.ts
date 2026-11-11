@@ -40,4 +40,9 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...prod, QUEUE_DRIVER: 'inline' })).toThrow(/rabbitmq/);
     expect(() => validateEnv({ ...prod, MAIL_DRIVER: 'log' })).toThrow(/MAIL_DRIVER=smtp/);
   });
+
+  it('refuses to run tests against a non-test database', () => {
+    expect(() => validateEnv({ ...base, APP_ENV: 'test', DATABASE_URL: 'postgresql://u:p@localhost:5433/onepay_dev' })).toThrow(/_test database/);
+    expect(validateEnv({ ...base, APP_ENV: 'test', DATABASE_URL: 'postgresql://u:p@localhost:5433/onepay_test?schema=public' }).APP_ENV).toBe('test');
+  });
 });

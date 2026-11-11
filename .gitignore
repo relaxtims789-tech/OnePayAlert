@@ -19,3 +19,6 @@ apps/merchant-web/.next-e2e/
 apps/merchant-web/e2e/.output/
 apps/merchant-web/next-env.d.ts
 apps/api/dist-e2e/
+apps/admin-web/.next-e2e/
+apps/admin-web/e2e/.output/
+apps/admin-web/next-env.d.ts

@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > CAM Professional Technology · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-11 — end of Phase 3_
+_Last updated: 2026-11-11 — end of Phase 4_
 
 ## Phase overview
 
@@ -12,15 +12,73 @@ _Last updated: 2026-11-11 — end of Phase 3_
 | 1 | Foundation: monorepo, shared types, DB schema, auth, tenancy, RBAC, outlets, employees, super-admin company control | ✅ **Done** |
 | 2 | Bank/gateway connections + transaction ingestion (webhooks, idempotency, RabbitMQ, Redis, WebSocket, FCM) | ✅ **Done** |
 | 3 | Merchant web dashboard (Next.js) | ✅ **Done** |
-| 4 | CAM Super Admin dashboard (Next.js) | ⏳ Next |
-| 5 | Flutter mobile app (Android/iOS) | Not started |
+| 4 | CAM Super Admin dashboard (Next.js) | ✅ **Done** |
+| 5 | Flutter mobile app (Android/iOS) | ⏳ Next (needs Flutter SDK installed) |
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | Not started |
 | 7 | Soundbox devices over EMQX MQTT | Not started |
 | 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | Not started |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 12 shared unit + 16 API unit + 13 web unit + **46 API e2e** (real PostgreSQL, Redis and RabbitMQ) + **11 browser e2e** (Playwright in Chrome against the real stack). All passing.
+**Test totals:** 12 shared + 8 web-core + 17 API + 5 merchant-web + 6 admin-web unit tests, **54 API e2e** (real PostgreSQL, Redis and RabbitMQ) and **20 browser e2e** (11 merchant + 9 admin, Playwright in Chrome against the real stack). All passing.
+
+---
+
+## Phase 4: what was built
+
+### CAM Super Admin console (`apps/admin-web`, port 3001)
+A separate Next.js app for CAM Professional Technology staff. It has a dark sidebar so it can't be mistaken for a merchant's dashboard, is not indexed by search engines, and supports Khmer, English and Chinese (English by default for staff).
+
+| Page | What staff can do |
+|------|-------------------|
+| Overview | Merchant count by status, new merchants in 30 days, **real** payment volume today per currency (simulated demo money is excluded and shown separately), active and pending bank connections, payment-pipeline health, subscriptions by status, 30-day sign-up chart, newest merchants |
+| Merchants | Search by business, email, phone or **owner email**, filter by status, paginate |
+| Merchant detail | Profile; team with roles and last sign-in; outlets; bank connections (no secrets); subscription; 30-day real volume. **Approve / suspend / reactivate / close with a recorded reason**, and change plan, status, period end or trial end |
+| Plans | Create, edit, activate/deactivate. Prices are entered as decimals and stored as integer minor units, with subscriber counts |
+| Banks & gateways | Catalogue with honest integration status and connection counts; enable/disable |
+| Audit log | Platform-wide, filterable by merchant or action prefix, with a detail view showing metadata such as the reason |
+| System health | Database, Redis and queue status; queued, stuck, failed and processed events; recent failed events with **re-queue** |
+| My account | Role, change password |
+
+**Roles:** `SUPER_ADMIN` can do everything. `SUPPORT` is read-only: action buttons are hidden, a read-only banner shows, and the API refuses changes regardless.
+
+### Platform API (all under `/api/v1/platform`)
+| Endpoint | Permission |
+|----------|------------|
+| `GET overview`, `GET companies`, `GET companies/:id`, `GET plans`, `GET health`, `GET payment-providers` | read (Support and Super Admin) |
+| `PATCH companies/:id/status` (with `reason`), `PATCH companies/:id/subscription`, `POST webhook-events/:id/retry` | `platform.companies.manage` |
+| `POST plans`, `PATCH plans/:id` | `platform.plans.manage` |
+| `PATCH payment-providers/:id` | `platform.providers.manage` |
+| `GET audit-logs` | `platform.audit.read` |
+
+Merchant detail uses explicit field selection, so credential and webhook-secret ciphertexts, password hashes and similar fields can never be serialised. A test asserts this.
+
+### Shared web layer (`packages/web-core`)
+The cookie session (backend-for-frontend), API proxy, single-refresh logic, session routes, API client, i18n engine and Khmer-aware formatting were moved out of the merchant app so both dashboards share one audited implementation:
+- **Per-app cookie names** (`SESSION_COOKIE_PREFIX`: merchant `op`, admin `opa`). Browsers share cookies across ports, so the two apps would otherwise overwrite each other's sessions.
+- **Admin proxy is an allow-list** (`platform/*`, `auth/me`, `auth/change-password`). Tenant endpoints aren't reachable from the admin app at all.
+- **Admin sign-in requires a platform role.** For a merchant account, the just-created session is revoked and no cookie is set.
+
+### Bug found and fixed: test servers used the dev database
+Prisma loads `apps/api/.env` when it is first required, before the app's config loader, and the loader never overrides values already set. A server started with `APP_ENV=test` from the built output (as the browser tests do) therefore connected to the **development** database. The Jest API tests were not affected, because they load `.env.test` first. Fixes:
+- `src/load-env.ts` is the first import of `main.ts` and loads the env file matching `APP_ENV`.
+- Config validation **refuses `APP_ENV=test` unless the database name ends in `_test`**.
+
+Consequence: e2e merchants created by browser test runs before this fix are sitting in the dev database (`onepay_dev`), named `*@e2e.onepay.local`, `*@admin-e2e.onepay.local` and `shots.owner@test.onepay.local`. They're harmless, and you can delete them whenever you like.
+
+### How to run the console
+```bash
+npm run dev:api
+npm run dev:admin     # http://localhost:3001 (copy apps/admin-web/.env.example to .env.local)
+npm run db:seed       # creates the dev super admin from SEED_SUPER_ADMIN_* in apps/api/.env
+npm run test -w @onepay/admin-web
+npm run test:e2e:admin
+```
+
+### Phase 4 known gaps
+- **No staff management UI:** CAM staff accounts are created by seed or database. Inviting and disabling staff, and enforcing 2FA, are planned for Phase 8 hardening.
+- **Merchant approval:** self-registered merchants start `ACTIVE`. Switching to "approval required" (start as `PENDING`) is a one-line policy change once CAM decides. The Approve flow already works.
+- **Billing:** plan limits are not yet enforced, and there are no invoices or payments (Phase 6).
 
 ---
 

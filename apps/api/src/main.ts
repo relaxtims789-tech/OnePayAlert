@@ -1,3 +1,5 @@
+// Must stay first: loads the APP_ENV-specific env file before Prisma can load `.env`.
+import './load-env';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';

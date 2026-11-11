@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@import '@onepay/ui/theme.css';
+
+@source '../../../../packages/ui/src';

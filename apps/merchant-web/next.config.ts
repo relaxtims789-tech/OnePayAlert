@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   // Lets the e2e build live next to a running dev server without clobbering it.
   distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
-  transpilePackages: ['@onepay/ui'],
+  transpilePackages: ['@onepay/ui', '@onepay/web-core'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

@@ -67,6 +67,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (live && (env.MAIL_DRIVER !== 'smtp' || !env.SMTP_URL)) {
     throw new Error(`${env.APP_ENV} requires MAIL_DRIVER=smtp and SMTP_URL`);
   }
+  if (env.APP_ENV === 'test' && !/\/[a-z0-9_]*_test(\?|$)/.test(env.DATABASE_URL)) {
+    throw new Error('APP_ENV=test must use a *_test database (refusing to touch dev/demo/production data)');
+  }
   if (env.APP_ENV === 'production' && env.QUEUE_DRIVER !== 'rabbitmq') {
     throw new Error('Production must use QUEUE_DRIVER=rabbitmq');
   }

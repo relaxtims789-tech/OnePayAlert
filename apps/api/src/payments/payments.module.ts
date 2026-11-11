@@ -74,7 +74,7 @@ export class PlatformProvidersController {
   ) {}
 
   @Get()
-  @RequirePermissions(Permission.PLATFORM_PROVIDERS_MANAGE)
+  @RequirePermissions(Permission.PLATFORM_COMPANIES_READ)
   async list(): Promise<(PaymentProviderDto & { isActive: boolean; connectionCount: number })[]> {
     const rows = await this.prisma.paymentProvider.findMany({
       orderBy: { name: 'asc' },

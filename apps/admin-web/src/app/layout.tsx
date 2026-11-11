@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 const khmer = Noto_Sans_Khmer({ subsets: ['khmer'], variable: '--font-khmer', display: 'swap', weight: ['400', '500', '600', '700'] });
 
 export const metadata: Metadata = {
-  title: { default: 'One PayAlert · CAM Admin', template: '%s · CAM Admin' },
+  title: { default: 'One PayAlert · MysoftKH Admin', template: '%s · MysoftKH Admin' },
   robots: { index: false, follow: false },
 };
 
@@ -18,7 +18,7 @@ export const viewport: Viewport = { themeColor: '#0F1B2D', width: 'device-width'
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const saved = (await cookies()).get(LOCALE_COOKIE)?.value;
-  // CAM staff default to English; they can switch to Khmer or Chinese.
+  // MysoftKH staff default to English; they can switch to Khmer or Chinese.
   const locale = isLocale(saved) ? saved : 'en';
   return (
     <html lang={locale} className={`${inter.variable} ${khmer.variable}`}>

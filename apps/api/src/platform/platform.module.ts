@@ -40,10 +40,10 @@ import {
 export { CompanyStatusDto } from './platform.dto';
 
 /**
- * CAM Professional Technology (platform) API. Reachable only with a platform role:
+ * Mysoftkh (platform) API. Reachable only with a platform role:
  * SUPPORT can read, SUPER_ADMIN can also change merchants, plans and providers.
  */
-@ApiTags('Platform (CAM Super Admin)')
+@ApiTags('Platform (MysoftKH Super Admin)')
 @ApiBearerAuth()
 @Controller('platform')
 export class PlatformController {

@@ -2,7 +2,7 @@ import { CompanyRole, PlatformRole } from './enums';
 
 /**
  * Fine-grained permissions. Tenant permissions are granted through a company membership
- * role; platform permissions are granted only to CAM Professional Technology staff.
+ * role; platform permissions are granted only to Mysoftkh staff.
  */
 export const Permission = {
   // Tenant (merchant) permissions
@@ -22,7 +22,7 @@ export const Permission = {
   SUBSCRIPTION_MANAGE: 'subscription.manage',
   AUDIT_READ: 'audit.read',
 
-  // Platform (CAM Super Admin) permissions
+  // Platform (MysoftKH Super Admin) permissions
   PLATFORM_COMPANIES_READ: 'platform.companies.read',
   PLATFORM_COMPANIES_MANAGE: 'platform.companies.manage',
   PLATFORM_PROVIDERS_MANAGE: 'platform.providers.manage',

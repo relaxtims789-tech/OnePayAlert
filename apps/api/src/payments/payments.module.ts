@@ -64,7 +64,7 @@ export class UpdateProviderDto {
   isActive?: boolean;
 }
 
-@ApiTags('Platform (CAM Super Admin)')
+@ApiTags('Platform (MysoftKH Super Admin)')
 @ApiBearerAuth()
 @Controller('platform/payment-providers')
 export class PlatformProvidersController {

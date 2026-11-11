@@ -6,6 +6,7 @@ test.describe.configure({ mode: 'serial' });
 const stamp = Date.now();
 const merchant = { email: `owner.${stamp}@admin-e2e.onepay.local`, password: 'Str0ngPassw0rd', company: `Kampot Pepper ${stamp}` };
 const planCode = `E2E_${stamp}`.slice(0, 40);
+const planName = `Pepper Growth ${stamp}`;
 
 async function signIn(page: Page, email: string, password: string, expectSuccess = true) {
   await page.context().addCookies([{ name: 'op_locale', value: 'en', url: `http://localhost:${WEB_PORT}` }]);
@@ -25,7 +26,7 @@ test.beforeAll(async ({ request }) => {
 
 test('refuses merchant accounts at the staff sign-in', async ({ page, context }) => {
   await signIn(page, merchant.email, merchant.password, false);
-  await expect(page.getByText('This account is not a CAM staff account.')).toBeVisible();
+  await expect(page.getByText('This account is not a MysoftKH staff account.')).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
   expect((await context.cookies()).map((c) => c.name)).not.toContain('opa_rt');
 });
@@ -99,7 +100,7 @@ test('creates a plan and moves the merchant onto it', async ({ page }) => {
   await page.getByRole('button', { name: 'New plan' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Code').fill(planCode);
-  await dialog.getByLabel('Name').fill('Pepper Growth');
+  await dialog.getByLabel('Name').fill(planName);
   await dialog.getByLabel('Price').fill('19.5');
   await dialog.getByLabel('Outlets').fill('4');
   await dialog.getByRole('button', { name: 'Save' }).click();
@@ -111,7 +112,7 @@ test('creates a plan and moves the merchant onto it', async ({ page }) => {
   await page.getByRole('link', { name: merchant.company }).click();
   await page.getByTestId('subscription').locator('..').getByRole('button', { name: 'Edit' }).click();
   const sub = page.getByRole('dialog');
-  await sub.getByLabel('Plan').selectOption({ label: 'Pepper Growth · $19.50 / month' });
+  await sub.getByLabel('Plan').selectOption({ label: `${planName} · $19.50 / month` });
   await sub.getByLabel('Status').selectOption('ACTIVE');
   await sub.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('Subscription updated')).toBeVisible();

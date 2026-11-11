@@ -3,7 +3,7 @@ import type { Messages } from './en';
 /** 简体中文 */
 export const zh: Messages = {
   common: {
-    console: 'CAM 超级管理后台',
+    console: 'MysoftKH 超级管理后台',
     save: '保存',
     cancel: '取消',
     close: '关闭',
@@ -49,11 +49,11 @@ export const zh: Messages = {
     account: '我的账户',
   },
   auth: {
-    title: 'CAM 员工登录',
-    subtitle: '仅限 CAM Professional Technology 员工使用，所有操作均会被记录。',
+    title: 'MysoftKH 员工登录',
+    subtitle: '仅限 Mysoftkh 员工使用，所有操作均会被记录。',
     password: '密码',
     signIn: '登录',
-    notStaff: '该账户不是 CAM 员工账户。',
+    notStaff: '该账户不是 MysoftKH 员工账户。',
     sessionExpired: '登录已过期，请重新登录。',
   },
   overview: {

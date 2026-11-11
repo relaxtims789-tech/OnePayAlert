@@ -161,7 +161,7 @@ export class AuthService {
     }
     if (membership && ['SUSPENDED', 'CLOSED'].includes(membership.company.status)) {
       if (dto.companyId || !user.platformRole) {
-        throw new ForbiddenException('This company account is suspended. Contact CAM support.');
+        throw new ForbiddenException('This company account is suspended. Contact MysoftKH support.');
       }
       membership = undefined;
     }
@@ -225,7 +225,7 @@ export class AuthService {
       });
       if (!m || !m.isActive) throw new UnauthorizedException('Membership is no longer active');
       if (['SUSPENDED', 'CLOSED'].includes(m.company.status)) {
-        throw new ForbiddenException('This company account is suspended. Contact CAM support.');
+        throw new ForbiddenException('This company account is suspended. Contact MysoftKH support.');
       }
       companyRole = m.role as CompanyRole;
     }
@@ -291,7 +291,7 @@ export class AuthService {
     });
     if (!m || !m.isActive) throw new ForbiddenException('You are not a member of this company');
     if (['SUSPENDED', 'CLOSED'].includes(m.company.status)) {
-      throw new ForbiddenException('This company account is suspended. Contact CAM support.');
+      throw new ForbiddenException('This company account is suspended. Contact MysoftKH support.');
     }
     await this.prisma.session.update({
       where: { id: currentSessionId },

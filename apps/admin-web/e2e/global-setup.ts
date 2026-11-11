@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SUPER_ADMIN, SUPPORT } from './fixtures';
 
-/** Migrates + seeds the dedicated test database and creates the CAM staff test accounts. */
+/** Migrates + seeds the dedicated test database and creates the MysoftKH staff test accounts. */
 export default function globalSetup(): void {
   const apiDir = join(__dirname, '..', '..', 'api');
   const env: NodeJS.ProcessEnv = { ...process.env };

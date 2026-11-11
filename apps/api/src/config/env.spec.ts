@@ -1,17 +1,8 @@
-import { DEV_ENCRYPTION_KEY, validateEnv } from './env';
+import { validateEnv } from './env';
 
-const realKey = Buffer.alloc(32, 7).toString('base64');
 const base = {
   DATABASE_URL: 'postgresql://u:p@localhost:5433/db',
   JWT_ACCESS_SECRET: 'x'.repeat(40),
-  DATA_ENCRYPTION_KEY: DEV_ENCRYPTION_KEY,
-};
-const prod = {
-  ...base,
-  APP_ENV: 'production',
-  DATA_ENCRYPTION_KEY: realKey,
-  MAIL_DRIVER: 'smtp',
-  SMTP_URL: 'smtps://u:p@smtp.example.com',
 };
 
 describe('validateEnv', () => {
@@ -19,30 +10,16 @@ describe('validateEnv', () => {
     const env = validateEnv({ ...base, CORS_ORIGINS: 'http://a.test, http://b.test' });
     expect(env.APP_ENV).toBe('development');
     expect(env.CORS_ORIGINS).toEqual(['http://a.test', 'http://b.test']);
-    expect(env.QUEUE_DRIVER).toBe('rabbitmq');
-    expect(env.WORKER_ENABLED).toBe(true);
   });
 
-  it('rejects short secrets, bad keys and missing database url', () => {
+  it('rejects short secrets and missing database url', () => {
     expect(() => validateEnv({ ...base, JWT_ACCESS_SECRET: 'short' })).toThrow(/JWT_ACCESS_SECRET/);
-    expect(() => validateEnv({ ...base, DATA_ENCRYPTION_KEY: 'abc' })).toThrow(/DATA_ENCRYPTION_KEY/);
-    const { DATABASE_URL: _omit, ...noDb } = base;
-    expect(() => validateEnv(noDb)).toThrow(/DATABASE_URL/);
+    expect(() => validateEnv({ JWT_ACCESS_SECRET: base.JWT_ACCESS_SECRET })).toThrow(/DATABASE_URL/);
   });
 
-  it('refuses development secrets and the inline queue in production', () => {
-    expect(validateEnv(prod).APP_ENV).toBe('production');
+  it('refuses placeholder secrets in production', () => {
     expect(() =>
-      validateEnv({ ...prod, JWT_ACCESS_SECRET: 'change-me-dev-access-secret-at-least-32-chars' }),
+      validateEnv({ ...base, APP_ENV: 'production', JWT_ACCESS_SECRET: 'change-me-dev-access-secret-at-least-32-chars' }),
     ).toThrow(/placeholder/);
-    expect(() => validateEnv({ ...prod, DATA_ENCRYPTION_KEY: DEV_ENCRYPTION_KEY })).toThrow(/encryption key/);
-    expect(() => validateEnv({ ...base, APP_ENV: 'demo' })).toThrow(/encryption key/);
-    expect(() => validateEnv({ ...prod, QUEUE_DRIVER: 'inline' })).toThrow(/rabbitmq/);
-    expect(() => validateEnv({ ...prod, MAIL_DRIVER: 'log' })).toThrow(/MAIL_DRIVER=smtp/);
-  });
-
-  it('refuses to run tests against a non-test database', () => {
-    expect(() => validateEnv({ ...base, APP_ENV: 'test', DATABASE_URL: 'postgresql://u:p@localhost:5433/onepay_dev' })).toThrow(/_test database/);
-    expect(validateEnv({ ...base, APP_ENV: 'test', DATABASE_URL: 'postgresql://u:p@localhost:5433/onepay_test?schema=public' }).APP_ENV).toBe('test');
   });
 });

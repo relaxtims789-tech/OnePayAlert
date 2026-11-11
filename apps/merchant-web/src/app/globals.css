@@ -1,5 +1,0 @@
-@import 'tailwindcss';
-@import '@onepay/ui/theme.css';
-
-/* Shared design-system components live outside this app; make Tailwind scan them. */
-@source '../../../../packages/ui/src';

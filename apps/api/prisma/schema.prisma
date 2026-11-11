@@ -99,6 +99,18 @@ enum BillingInterval {
   YEAR
 }
 
+enum WebhookEventSource {
+  WEBHOOK
+  SIMULATOR
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 enum PushPlatform {
   ANDROID
   IOS
@@ -248,6 +260,11 @@ model PaymentProvider {
   name      String       @db.VarChar(120)
   type      ProviderType
   logoUrl   String?      @map("logo_url") @db.VarChar(500)
+  /// Integration adapter used for this provider (e.g. ONEPAY_WEBHOOK_V1, SIMULATOR).
+  /// NULL = no live integration yet; connections stay PENDING and cannot receive events.
+  adapterKey String?     @map("adapter_key") @db.VarChar(40)
+  /// Demo-only provider. Never usable when APP_ENV=production.
+  isDemo    Boolean      @default(false) @map("is_demo")
   isActive  Boolean      @default(true) @map("is_active")
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -270,16 +287,18 @@ model BankConnection {
   currency             Currency
   status               BankConnectionStatus @default(PENDING)
   credentialCiphertext String?              @map("credential_ciphertext")
-  webhookSecretHash    String?              @map("webhook_secret_hash") @db.VarChar(128)
+  /// AES-256-GCM encrypted HMAC secret used to verify inbound webhooks.
+  webhookSecretCiphertext String?           @map("webhook_secret_ciphertext")
   lastSyncedAt         DateTime?            @map("last_synced_at") @db.Timestamptz(6)
   lastError            String?              @map("last_error") @db.VarChar(500)
   createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  outlet       Outlet?         @relation(fields: [outletId], references: [id], onDelete: SetNull)
-  provider     PaymentProvider @relation(fields: [providerId], references: [id])
-  transactions Transaction[]
+  company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  outlet        Outlet?         @relation(fields: [outletId], references: [id], onDelete: SetNull)
+  provider      PaymentProvider @relation(fields: [providerId], references: [id])
+  transactions  Transaction[]
+  webhookEvents WebhookEvent[]
 
   @@index([companyId])
   @@index([providerId])
@@ -304,6 +323,8 @@ model Transaction {
   receivedAt         DateTime             @default(now()) @map("received_at") @db.Timestamptz(6)
   /// Provider payload kept for reconciliation (secrets stripped before storing).
   rawPayload         Json?                @map("raw_payload")
+  /// True only for demo simulator payments. Always false in production.
+  isSimulated        Boolean              @default(false) @map("is_simulated")
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -317,6 +338,30 @@ model Transaction {
   @@index([companyId, outletId, occurredAt(sort: Desc)])
   @@index([companyId, status])
   @@map("transactions")
+}
+
+/// Inbox of every inbound provider event. The DB row is the source of truth; the queue
+/// message only carries its id, so lost messages are recovered by the re-publish sweeper.
+model WebhookEvent {
+  id               String             @id @default(uuid()) @db.Uuid
+  companyId        String             @map("company_id") @db.Uuid
+  bankConnectionId String             @map("bank_connection_id") @db.Uuid
+  providerEventId  String             @map("provider_event_id") @db.VarChar(128)
+  source           WebhookEventSource
+  status           WebhookEventStatus @default(RECEIVED)
+  attempts         Int                @default(0)
+  lastError        String?            @map("last_error") @db.VarChar(500)
+  payload          Json
+  transactionId    String?            @map("transaction_id") @db.Uuid
+  receivedAt       DateTime           @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt      DateTime?          @map("processed_at") @db.Timestamptz(6)
+
+  bankConnection BankConnection @relation(fields: [bankConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([bankConnectionId, providerEventId])
+  @@index([status, receivedAt])
+  @@index([companyId, receivedAt(sort: Desc)])
+  @@map("webhook_events")
 }
 
 // ───────────────────────────── Soundbox devices ─────────────────────────────

@@ -5,6 +5,7 @@
 - Current progress: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 - Phase plan: [docs/ROADMAP.md](docs/ROADMAP.md)
 - API docs: run the API, then open http://localhost:4100/docs
+- Webhook spec for integrators: [docs/WEBHOOK_SPEC.md](docs/WEBHOOK_SPEC.md)
 
 ## Quick start
 ```bash

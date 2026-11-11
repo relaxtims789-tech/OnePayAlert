@@ -14,6 +14,7 @@ import { Permission, type CompanyDto, type Paginated } from '@onepay/shared';
 import { Prisma } from '@prisma/client';
 import { IsEnum } from 'class-validator';
 import { AuditService } from '../audit/audit.service';
+import { PrincipalService } from '../auth/principal.service';
 import type { AuthUser } from '../common/auth-user';
 import { ClientIp, CurrentUser, RequirePermissions } from '../common/decorators';
 import { PaginationQueryDto } from '../common/pagination.dto';
@@ -37,6 +38,7 @@ export class PlatformCompaniesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly principals: PrincipalService,
   ) {}
 
   async list(q: PaginationQueryDto): Promise<Paginated<PlatformCompanyDto>> {
@@ -88,6 +90,7 @@ export class PlatformCompaniesService {
       );
       return updated;
     });
+    await this.principals.invalidateCompany(id);
     return toCompanyDto(company);
   }
 }

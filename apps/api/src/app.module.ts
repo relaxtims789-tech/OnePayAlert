@@ -11,9 +11,13 @@ import { AppConfig } from './config/app-config.service';
 import { AppConfigModule } from './config/config.module';
 import { EmployeesModule } from './employees/employees.module';
 import { HealthController } from './health/health.controller';
+import { InfraModule } from './infra/infra.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { OutletsModule } from './outlets/outlets.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PlatformModule } from './platform/platform.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Global()
 @Module({ providers: [AuditService], exports: [AuditService] })
@@ -23,6 +27,7 @@ class AuditModule {}
   imports: [
     AppConfigModule,
     PrismaModule,
+    InfraModule,
     AuditModule,
     ThrottlerModule.forRootAsync({
       inject: [AppConfig],
@@ -37,6 +42,9 @@ class AuditModule {}
     OutletsModule,
     EmployeesModule,
     PlatformModule,
+    NotificationsModule,
+    PaymentsModule,
+    TransactionsModule,
   ],
   controllers: [HealthController],
   providers: [

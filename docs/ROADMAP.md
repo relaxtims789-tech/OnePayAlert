@@ -6,7 +6,9 @@ Each phase ends with its tests passing, migrations committed, Swagger updated an
 ## Phase 1: Foundation ✅
 Monorepo, shared package, full Prisma schema and migration, NestJS core, auth (argon2id, JWT and rotating refresh tokens), tenant isolation, RBAC, companies, outlets, employees, super-admin company status, audit log, Swagger, unit and e2e tests.
 
-## Phase 2: Bank connections & real-time payment alerts
+## Phase 2: Bank connections & real-time payment alerts ✅
+Done. Every item below is built except real bank adapters, which are blocked on institution API agreements. See PROJECT_STATUS.md.
+
 - `payment-providers` catalogue API (platform-managed) and `bank-connections` CRUD. Credentials are envelope-encrypted with AES-256-GCM using a KMS or env master key, and are write-only from clients.
 - **Provider adapter interface** (`verifyWebhook`, `parseEvent`, `fetchTransactions`). Adapters are added per bank or gateway (Bakong KHQR first) once each institution grants API access. **No fake success paths:** a `SimulatorAdapter` exists only when `APP_ENV !== production` and is clearly labelled as demo.
 - Webhook ingestion endpoint: verify signature → persist raw event → publish to RabbitMQ → worker normalises into `transactions` (idempotent on `bank_connection_id + provider_txn_id`, integer minor units).

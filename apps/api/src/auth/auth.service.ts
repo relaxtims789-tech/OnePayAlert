@@ -16,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { LoginDto, RegisterMerchantDto } from './dto';
 import { PasswordService } from './password.service';
+import { PrincipalService } from './principal.service';
 import { TokenService } from './token.service';
 
 export interface ClientInfo {
@@ -36,6 +37,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
+    private readonly principals: PrincipalService,
   ) {
     this.dummyHash = this.passwords.hash('timing-equaliser-password-0');
   }
@@ -199,6 +201,7 @@ export class AuthService {
         where: { userId: session.userId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
+      await this.principals.invalidateUser(session.userId);
       throw new UnauthorizedException('Refresh token has already been used');
     }
     if (session.expiresAt < new Date()) throw new UnauthorizedException('Refresh token expired');
@@ -236,6 +239,7 @@ export class AuthService {
         },
       });
     });
+    await this.principals.invalidateSession(session.id);
 
     return this.tokens.issue(
       {
@@ -250,10 +254,13 @@ export class AuthService {
   }
 
   async logout(refreshToken: string): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { refreshTokenHash: TokenService.hashRefreshToken(refreshToken), revokedAt: null },
-      data: { revokedAt: new Date() },
+    const session = await this.prisma.session.findUnique({
+      where: { refreshTokenHash: TokenService.hashRefreshToken(refreshToken) },
+      select: { id: true, revokedAt: true },
     });
+    if (!session || session.revokedAt) return;
+    await this.prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
+    await this.principals.invalidateSession(session.id);
   }
 
   /** Issues a new session scoped to another company the user belongs to. */
@@ -275,6 +282,7 @@ export class AuthService {
       where: { id: currentSessionId },
       data: { revokedAt: new Date() },
     });
+    await this.principals.invalidateSession(currentSessionId);
     return this.startSession(
       userId,
       companyId,

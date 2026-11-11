@@ -1,0 +1,169 @@
+/// API data models (mirroring `@onepay/shared` types). Money is integer minor units.
+library;
+
+class AuthTokens {
+  const AuthTokens({required this.accessToken, required this.refreshToken, required this.expiresIn});
+  final String accessToken;
+  final String refreshToken;
+  final int expiresIn;
+
+  factory AuthTokens.fromJson(Map<String, dynamic> j) => AuthTokens(
+        accessToken: j['accessToken'] as String,
+        refreshToken: j['refreshToken'] as String,
+        expiresIn: (j['accessTokenExpiresIn'] as num).toInt(),
+      );
+}
+
+class Membership {
+  const Membership({required this.companyId, required this.companyName, required this.role});
+  final String companyId;
+  final String companyName;
+  final String role;
+
+  factory Membership.fromJson(Map<String, dynamic> j) =>
+      Membership(companyId: j['companyId'] as String, companyName: j['companyName'] as String, role: j['role'] as String);
+}
+
+class Me {
+  const Me({
+    required this.id,
+    required this.email,
+    required this.fullName,
+    required this.locale,
+    required this.activeCompanyId,
+    required this.activeRole,
+    required this.permissions,
+    required this.memberships,
+  });
+  final String id;
+  final String email;
+  final String fullName;
+  final String locale;
+  final String? activeCompanyId;
+  final String? activeRole;
+  final List<String> permissions;
+  final List<Membership> memberships;
+
+  bool can(String permission) => permissions.contains(permission);
+
+  Membership? get activeMembership {
+    for (final m in memberships) {
+      if (m.companyId == activeCompanyId) return m;
+    }
+    return null;
+  }
+
+  factory Me.fromJson(Map<String, dynamic> j) => Me(
+        id: j['id'] as String,
+        email: j['email'] as String,
+        fullName: j['fullName'] as String,
+        locale: j['locale'] as String,
+        activeCompanyId: j['activeCompanyId'] as String?,
+        activeRole: j['activeRole'] as String?,
+        permissions: (j['permissions'] as List).cast<String>(),
+        memberships: (j['memberships'] as List).map((m) => Membership.fromJson(Map<String, dynamic>.from(m as Map))).toList(),
+      );
+}
+
+class Txn {
+  const Txn({
+    required this.id,
+    required this.outletId,
+    required this.providerCode,
+    required this.providerTxnId,
+    required this.status,
+    required this.amountMinor,
+    required this.currency,
+    required this.payerName,
+    required this.payerAccountMasked,
+    required this.reference,
+    required this.isSimulated,
+    required this.occurredAt,
+  });
+  final String id;
+  final String? outletId;
+  final String providerCode;
+  final String providerTxnId;
+  final String status;
+  final int amountMinor;
+  final String currency;
+  final String? payerName;
+  final String? payerAccountMasked;
+  final String? reference;
+  final bool isSimulated;
+  final DateTime occurredAt;
+
+  factory Txn.fromJson(Map<String, dynamic> j) => Txn(
+        id: j['id'] as String,
+        outletId: j['outletId'] as String?,
+        providerCode: j['providerCode'] as String,
+        providerTxnId: j['providerTxnId'] as String,
+        status: j['status'] as String,
+        amountMinor: (j['amountMinor'] as num).toInt(),
+        currency: j['currency'] as String,
+        payerName: j['payerName'] as String?,
+        payerAccountMasked: j['payerAccountMasked'] as String?,
+        reference: j['reference'] as String?,
+        isSimulated: j['isSimulated'] as bool? ?? false,
+        occurredAt: DateTime.parse(j['occurredAt'] as String),
+      );
+}
+
+class CurrencySummary {
+  const CurrencySummary({
+    required this.currency,
+    required this.successCount,
+    required this.successAmountMinor,
+    required this.pendingCount,
+    required this.failedCount,
+  });
+  final String currency;
+  final int successCount;
+  final int successAmountMinor;
+  final int pendingCount;
+  final int failedCount;
+
+  factory CurrencySummary.fromJson(Map<String, dynamic> j) => CurrencySummary(
+        currency: j['currency'] as String,
+        successCount: (j['successCount'] as num).toInt(),
+        successAmountMinor: (j['successAmountMinor'] as num).toInt(),
+        pendingCount: (j['pendingCount'] as num).toInt(),
+        failedCount: (j['failedCount'] as num).toInt(),
+      );
+}
+
+class Summary {
+  const Summary(this.byCurrency);
+  final List<CurrencySummary> byCurrency;
+
+  CurrencySummary? of(String currency) {
+    for (final c in byCurrency) {
+      if (c.currency == currency) return c;
+    }
+    return null;
+  }
+
+  int get successCount => byCurrency.fold(0, (a, c) => a + c.successCount);
+  int get pendingCount => byCurrency.fold(0, (a, c) => a + c.pendingCount);
+  int get failedCount => byCurrency.fold(0, (a, c) => a + c.failedCount);
+
+  factory Summary.fromJson(Map<String, dynamic> j) =>
+      Summary((j['byCurrency'] as List).map((c) => CurrencySummary.fromJson(Map<String, dynamic>.from(c as Map))).toList());
+}
+
+class Page<T> {
+  const Page({required this.items, required this.total, required this.page, required this.pageSize});
+  final List<T> items;
+  final int total;
+  final int page;
+  final int pageSize;
+
+  bool get hasMore => page * pageSize < total;
+
+  static Page<T> fromJson<T>(Map<String, dynamic> j, T Function(Map<String, dynamic>) item) => Page<T>(
+        items: (j['items'] as List).map((e) => item(Map<String, dynamic>.from(e as Map))).toList(),
+        total: (j['total'] as num).toInt(),
+        page: (j['page'] as num).toInt(),
+        pageSize: (j['pageSize'] as num).toInt(),
+      );
+}

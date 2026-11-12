@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24.21.0'
+  # The e2e suites read apps/api/.env.test; CI uses the committed example (test-only values).
+  APP_ENV: test
+
+jobs:
+  checks:
+    name: Typecheck and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build:shared
+      - run: npx prisma generate
+        working-directory: apps/api
+      - run: npm run typecheck
+      - run: npm test
+      - name: Dependency audit (production dependencies, high and critical)
+        run: node tools/audit.mjs
+
+  api-e2e:
+    name: API end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: onepay
+          POSTGRES_PASSWORD: onepay_dev_password
+          POSTGRES_DB: onepay_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U onepay -d onepay_test" --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+      rabbitmq:
+        image: rabbitmq:4.1-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: onepay
+          RABBITMQ_DEFAULT_PASS: onepay_dev_password
+        ports: ['5672:5672']
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 10s --health-timeout 10s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build:shared
+      - run: cp apps/api/.env.test.example apps/api/.env.test
+      - run: npx prisma generate
+        working-directory: apps/api
+      - run: npm run test:e2e
+
+  web-e2e:
+    name: Browser end-to-end (merchant + admin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [checks]
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: onepay
+          POSTGRES_PASSWORD: onepay_dev_password
+          POSTGRES_DB: onepay_test
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U onepay -d onepay_test" --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+      rabbitmq:
+        image: rabbitmq:4.1-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: onepay
+          RABBITMQ_DEFAULT_PASS: onepay_dev_password
+        ports: ['5672:5672']
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 10s --health-timeout 10s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build:shared
+      - run: cp apps/api/.env.test.example apps/api/.env.test
+      - run: npx prisma generate
+        working-directory: apps/api
+      # The suites use the runner's Google Chrome (channel: 'chrome').
+      - run: npm run test:e2e:web
+      - run: npm run test:e2e:admin
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/*/e2e/.output
+          retention-days: 7
+
+  images:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [checks]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: API (runtime and migrate)
+        run: |
+          docker build -f infra/docker/api.Dockerfile --target runtime -t onepay-api:ci .
+          docker build -f infra/docker/api.Dockerfile --target migrate -t onepay-migrate:ci .
+      - name: Dashboards
+        run: |
+          docker build -f infra/docker/web.Dockerfile --build-arg APP=merchant-web -t onepay-merchant-web:ci .
+          docker build -f infra/docker/web.Dockerfile --build-arg APP=admin-web -t onepay-admin-web:ci .
+      - name: Compose file is valid
+        run: |
+          cp deploy/env/production.env.example deploy/env/ci.env
+          sed -i -E 's/^(DB_OWNER_PASSWORD|DB_APP_PASSWORD|REDIS_PASSWORD|RABBITMQ_PASSWORD|JWT_ACCESS_SECRET|DATA_ENCRYPTION_KEY|EMQX_DASHBOARD_PASSWORD)=$/\1=ci-placeholder-value-0123456789/' deploy/env/ci.env
+          docker compose -f deploy/compose.yaml --env-file deploy/env/ci.env --profile soundbox config --quiet
+
+  mobile:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

@@ -9,6 +9,7 @@ import {
   type TransactionDto,
   type TransactionStatus,
 } from '@onepay/shared';
+import { alertsSent, paymentEvents } from '../common/metrics';
 import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
@@ -34,6 +35,7 @@ export class NotificationsService {
     txn: TransactionDto,
     previousStatus: TransactionStatus | null,
   ): Promise<void> {
+    paymentEvents.inc({ kind, status: txn.status, simulated: String(txn.isSimulated) });
     this.realtime.emitTransaction(
       kind === 'created' ? RealtimeEvent.TRANSACTION_CREATED : RealtimeEvent.TRANSACTION_UPDATED,
       txn,
@@ -43,7 +45,14 @@ export class NotificationsService {
     if (becameSuccessful && txn.direction === 'CREDIT') {
       await Promise.all([
         this.pushPaymentAlert(txn),
-        this.devices.announcePayment(txn).catch((e: unknown) => {
+        this.devices
+          .announcePayment(txn)
+          .then((n) => {
+            if (n > 0) alertsSent.inc({ channel: 'soundbox', result: 'sent' }, n);
+            return n;
+          })
+          .catch((e: unknown) => {
+            alertsSent.inc({ channel: 'soundbox', result: 'failed' });
           this.logger.error(`Soundbox announcement for ${txn.id} failed: ${e instanceof Error ? e.message : String(e)}`);
           return 0;
         }),
@@ -109,11 +118,13 @@ export class NotificationsService {
               isSimulated: String(txn.isSimulated),
             },
           });
+          alertsSent.inc({ channel: 'push', result: 'sent' }, res.sent);
           if (res.invalidTokens.length > 0) {
             await this.prisma.pushToken.deleteMany({ where: { token: { in: res.invalidTokens } } });
           }
         }
       } catch (e) {
+        alertsSent.inc({ channel: 'push', result: 'failed' }, tokens.length);
         this.logger.error(`Push to ${tokens.length} device(s) failed: ${(e as Error).message}`);
       }
     }

@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-12 — end of Phase 7_
+_Last updated: 2026-11-12 — end of Phase 8_
 
 ## Phase overview
 
@@ -16,11 +16,65 @@ _Last updated: 2026-11-12 — end of Phase 7_
 | 5 | Flutter mobile app (Android/iOS) | ✅ **Done** (Android verified; iOS not yet built) |
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | ✅ **Done** |
 | 7 | Soundbox devices over EMQX MQTT | ✅ **Done** (verified with the simulator; no physical device yet) |
-| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ⏳ Next |
+| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ✅ **Done** (CI not yet run on GitHub) |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 64 shared + 8 web-core + 27 API + 5 merchant-web + 6 admin-web unit tests, **85 API e2e** (real PostgreSQL, Redis and RabbitMQ, plus an in-process MQTT broker) and **25 browser e2e** (14 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **23 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 64 shared + 8 web-core + 28 API + 5 merchant-web + 6 admin-web unit tests, **91 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **25 browser e2e** (14 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **23 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Phase 8: what was built
+
+Runbook for operators: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+### Production images and deployment
+- **Images** (`infra/docker/`): `onepay-api` (Node 24 slim, production dependencies only, non-root, health check, 767 MB), `onepay-migrate` (one-shot: migrations, reference data, database role), and one Next.js standalone image per dashboard (≈390 MB, non-root). No packages are downloaded at build time beyond npm: the slim runtime gets just the two OpenSSL 3 libraries Prisma needs, the Chinese PDF font is trimmed to the two weights used, and Prisma's CLI, engines and TypeScript are left out.
+- **`deploy/compose.yaml`**: one complete environment per host — Postgres, Redis (password, AOF), RabbitMQ, the migrate job (the API starts only if it succeeds), API, both dashboards, Caddy (automatic HTTPS) and, optionally, EMQX with MQTT over TLS on 8883. Only Caddy (and EMQX's TLS port) is published.
+- **Demo and production are separate** hosts, compose projects, env files, databases, brokers, secrets and domains (`deploy/env/demo.env.example`, `production.env.example`). The API refuses demo payments in production; the demo env file is the only one with the simulator.
+- **Caddy** adds HSTS and a Content Security Policy on the dashboards, hides the EMQX hooks and `/metrics` from the internet, and can limit the MysoftKH console to office/VPN addresses (`ADMIN_ALLOWED_IPS`).
+- **First staff account** in any environment: `prisma/create-staff.ts` (password from the environment, never the command line). The seed still never creates accounts in production.
+- **Rehearsed locally** with the real images and compose file (`*.localhost` domains through Caddy): migrations + seed + role, register a merchant, demo payment through RabbitMQ, transactions, PDF (km/zh) and CSV, translated plan-limit error, dashboard sign-in with `Secure` httpOnly cookies, staff account creation and admin sign-in, metrics from inside the network, hidden internal paths, backup, and a restore drill. The rehearsal found and fixed a real bug: Compose passes unset optional settings as empty strings, which the API rejected (`MQTT_URL: Invalid URL`); empty settings now count as unset.
+
+### Row-level security (Postgres)
+- Policies on every tenant table (`companies`, `outlets`, `memberships`, `membership_outlets`, `bank_connections`, `transactions`, `webhook_events`, `devices`, `subscriptions`, `invoices`, `audit_logs`), forced also for the table owner.
+- Merchant read paths (transactions, summary, reports and exports, outlets, employees, bank connections, devices, invoices) run through `prisma.forTenant(companyId)`: each query runs in a transaction that sets `onepay.company_id`, so **the database itself** returns only that company's rows, even if a query forgot its filter, and refuses writes into another company. Work without a company context (ingestion, billing job, MysoftKH console, sign-in) is unaffected.
+- The API runs as `onepay_app`: a plain role that cannot bypass RLS or change the schema (`prisma/app-role.mjs`, run by the migrate job). **The whole test suite now runs as such a role**, so every test exercises the policies; a dedicated test proves cross-tenant reads, updates and inserts are refused at the database.
+
+### Logging and metrics
+- JSON logs in demo/production (Nest's built-in JSON logger), one line per request: request id, method, route pattern, status, duration, user and company. Never bodies, query strings or tokens.
+- Every response carries `X-Request-Id` (a well-formed incoming id is kept, anything else replaced), and 500 errors include it so support can find the log line.
+- Prometheus metrics at `/api/v1/metrics` (only with `METRICS_TOKEN`, blocked at the edge): request durations by route pattern, payment events, alerts sent per channel, dependency status, Node process metrics.
+- `TRUST_PROXY`: behind Caddy, audit logs and rate limits now see the real client address instead of the proxy's (without it, every user would have shared one rate limit).
+
+### Backups
+- `deploy/backup.sh`: compressed `pg_dump`, verified with `pg_restore --list`, SHA-256, 14-day retention. `deploy/restore.sh`: a restore drill into a scratch database by default; `--replace-live` for disaster recovery, with confirmation.
+
+### CI (`.github/workflows/ci.yml`)
+- Typecheck + unit tests + dependency audit; API e2e against Postgres/Redis/RabbitMQ service containers; both browser suites in Chrome; all four Docker images built and the compose file validated; Flutter analyze + tests. **Not run on GitHub yet** — it will run on the first push of this branch.
+
+### Dependency audit and upgrades
+- Upgraded **nodemailer 7 → 10.2.1** (SMTP command injection and ~20 other advisories; SMTP sending re-checked against a test SMTP server), **zod 3 → 4.6.7**, **firebase-admin 13 → 14.5.0**. Versions chosen at least two weeks old.
+- `tools/audit.mjs` fails CI on any high/critical production advisory except an explicit, expiring allow-list. The only entry: the Prisma CLI's `deepmerge-ts` (build/migrate time, trusted input, not in the runtime image; fixed only in Prisma 7), review by 2027-02-28.
+
+### Security review (summary)
+Checked: token handling (short-lived access tokens, rotating refresh tokens with reuse detection), rate limits on sign-in/registration/password reset/device claims (now per real client IP), password rules, webhook signatures and replay window, same-origin checks and httpOnly/Secure/SameSite cookies, CORS closed, Swagger off in production, helmet headers, HSTS + CSP at the edge, generic 500s, secrets never logged, non-root containers, internal endpoints unreachable from the internet, CSV formula injection, tenant isolation in code **and** in the database, dependency advisories.
+
+### Tests (all passing)
+- 64 shared, 8 web-core, 28 API, 5 merchant-web and 6 admin-web unit tests; full monorepo typecheck.
+- **91 API e2e**, now running as a non-superuser role (RLS in force), including new suites for row-level security and request ids/metrics.
+- **25 browser e2e (14 merchant + 11 admin, Playwright in Chrome)**, with the same role.
+
+### Phase 8 known gaps
+- **CI has not run on GitHub yet**; the first push will show whether the hosted runners need adjustments.
+- **No linter** (ESLint) yet: strict TypeScript checking runs everywhere, but style/lint rules are not enforced.
+- **Content Security Policy** is served by Caddy but was not exercised in a browser locally (the browser here does not trust Caddy's local test certificate). Check the dashboards once on the real demo domain.
+- **Images are built locally**; pushing them to a registry (and signing them) is not set up.
+- **Single host**: no high availability or managed database; the in-memory rate-limit store is per API instance.
+- **Off-site backup copy** is described, not automated.
+- **Rate limits are per IP only**; there is no per-account lockout after repeated failed sign-ins.
+- **Kicking a disabled soundbox immediately** (EMQX management API) is still open from Phase 7.
+- The `migrate` image is large (≈3 GB, full build toolchain); it only runs at release time.
 
 ---
 

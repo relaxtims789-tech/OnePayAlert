@@ -199,7 +199,8 @@ export class DevicesService implements OnModuleInit {
   }
 
   async list(user: TenantUser): Promise<DeviceDto[]> {
-    const devices = await this.prisma.device.findMany({ where: this.scope(user), orderBy: [{ claimedAt: 'asc' }, { serialNumber: 'asc' }] });
+    const db = this.prisma.forTenant(user.companyId);
+    const devices = await db.device.findMany({ where: this.scope(user), orderBy: [{ claimedAt: 'asc' }, { serialNumber: 'asc' }] });
     return devices.map(toDeviceDto);
   }
 
@@ -408,7 +409,8 @@ export class DevicesService implements OnModuleInit {
   // ───────────────────────── helpers ─────────────────────────
 
   private async findOwned(user: TenantUser, id: string): Promise<Device> {
-    const d = await this.prisma.device.findFirst({ where: { id, ...this.scope(user) } });
+    const db = this.prisma.forTenant(user.companyId);
+    const d = await db.device.findFirst({ where: { id, ...this.scope(user) } });
     if (!d) throw apiError(HttpStatus.NOT_FOUND, 'DEVICE_NOT_FOUND');
     return d;
   }

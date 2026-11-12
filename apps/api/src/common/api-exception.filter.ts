@@ -75,11 +75,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError && prismaBody(exception)) {
       body = prismaBody(exception) as ErrorBody;
     } else {
+      const requestId = (req as Request & { id?: string }).id;
       this.logger.error(
-        `Unhandled error on ${req.method} ${req.originalUrl}`,
+        `Unhandled error on ${req.method} ${req.path} (request ${requestId ?? '-'})`,
         exception instanceof Error ? exception.stack : String(exception),
       );
-      body = { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, error: 'Internal Server Error', message: 'Internal server error' };
+      // The id lets support find the log entry; nothing about the failure itself leaks.
+      body = { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, error: 'Internal Server Error', message: 'Internal server error', requestId };
     }
 
     let code = body.code as ApiErrorCode | undefined;

@@ -10,7 +10,10 @@ import { loadTestEnv } from './env';
 export default function globalSetup(): void {
   loadTestEnv();
   const cwd = join(__dirname, '..');
-  const env = { ...process.env, SEED_SUPER_ADMIN_EMAIL: '', SEED_SUPER_ADMIN_PASSWORD: '' };
-  execSync('npx prisma migrate deploy', { cwd, env, stdio: 'pipe' });
-  execSync('npx ts-node prisma/seed.ts', { cwd, env, stdio: 'pipe' });
+  // Migrations and reference data run as the owner; the API under test runs as a plain role
+  // (created here) so row-level security is in force for every test.
+  const owner = { ...process.env, DATABASE_URL: process.env.MIGRATION_DATABASE_URL ?? process.env.DATABASE_URL, SEED_SUPER_ADMIN_EMAIL: '', SEED_SUPER_ADMIN_PASSWORD: '' };
+  execSync('npx prisma migrate deploy', { cwd, env: owner, stdio: 'pipe' });
+  execSync('npx ts-node prisma/seed.ts', { cwd, env: owner, stdio: 'pipe' });
+  execSync('node prisma/app-role.mjs', { cwd, env: process.env, stdio: 'pipe' });
 }

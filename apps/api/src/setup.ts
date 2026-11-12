@@ -1,6 +1,7 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { requestContext } from './common/request-context';
 import { AppConfig } from './config/app-config.service';
 import { RedisIoAdapter } from './realtime/redis-io.adapter';
 
@@ -14,6 +15,9 @@ export async function configureApp(app: INestApplication, opts: { swagger?: bool
   const config = app.get(AppConfig);
 
   app.setGlobalPrefix(API_PREFIX);
+  const trustProxy = config.get('TRUST_PROXY');
+  if (trustProxy > 0) (app.getHttpAdapter().getInstance() as { set(k: string, v: unknown): void }).set('trust proxy', trustProxy);
+  app.use(requestContext);
   app.use(helmet());
   app.enableCors({ origin: config.get('CORS_ORIGINS'), credentials: true });
   app.useGlobalPipes(

@@ -102,6 +102,7 @@ export class TransactionsService {
   }
 
   async list(user: TenantUser, q: ListTransactionsQueryDto): Promise<Paginated<TransactionDto>> {
+    const db = this.prisma.forTenant(user.companyId);
     const where: Prisma.TransactionWhereInput = {
       ...this.scope(user, q.outletId),
       ...(q.bankConnectionId ? { bankConnectionId: q.bankConnectionId } : {}),
@@ -121,21 +122,22 @@ export class TransactionsService {
           }
         : {}),
     };
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.transaction.findMany({
+    const [items, total] = await Promise.all([
+      db.transaction.findMany({
         where,
         include: transactionInclude,
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
       }),
-      this.prisma.transaction.count({ where }),
+      db.transaction.count({ where }),
     ]);
     return { items: items.map(toTransactionDto), total, page: q.page, pageSize: q.pageSize };
   }
 
   async get(user: TenantUser, id: string): Promise<TransactionDto> {
-    const t = await this.prisma.transaction.findFirst({
+    const db = this.prisma.forTenant(user.companyId);
+    const t = await db.transaction.findFirst({
       where: { id, ...this.scope(user) },
       include: transactionInclude,
     });
@@ -144,6 +146,7 @@ export class TransactionsService {
   }
 
   async summary(user: TenantUser, q: SummaryQueryDto): Promise<TransactionSummaryDto> {
+    const db = this.prisma.forTenant(user.companyId);
     const { from, to } = resolveRange(q.from, q.to);
     const where: Prisma.TransactionWhereInput = {
       ...this.scope(user, q.outletId),
@@ -151,7 +154,7 @@ export class TransactionsService {
       occurredAt: { gte: from, lt: to },
       ...(q.includeSimulated === false ? { isSimulated: false } : {}),
     };
-    const groups = await this.prisma.transaction.groupBy({
+    const groups = await db.transaction.groupBy({
       by: ['currency', 'status'],
       where,
       _count: { _all: true },
@@ -194,7 +197,7 @@ export class TransactionsService {
           ? Prisma.sql`AND outlet_id = ANY(${user.outletIds}::uuid[])`
           : Prisma.empty;
     const simulatedFilter = q.includeSimulated === false ? Prisma.sql`AND is_simulated = FALSE` : Prisma.empty;
-    const daily = await this.prisma.$queryRaw<
+    const daily = await db.$queryRaw<
       { date: string; currency: 'USD' | 'KHR'; count: number; amount: bigint }[]
     >`
       SELECT to_char((occurred_at AT TIME ZONE ${BUSINESS_TIMEZONE})::date, 'YYYY-MM-DD') AS date,

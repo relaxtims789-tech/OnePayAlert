@@ -42,5 +42,9 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 - Device provisioning and assignment, EMQX auth (per-device credentials and ACL), payment announcements over MQTT, and online/offline telemetry.
 - Protocol for firmware developers: [SOUNDBOX_PROTOCOL.md](SOUNDBOX_PROTOCOL.md). Still open: a physical device, MQTT over TLS, kicking disabled devices, firmware updates (see PROJECT_STATUS.md).
 
-## Phase 8: Hardening & pilot
-- Production Dockerfiles, CI (lint, typecheck, unit, e2e), Postgres RLS, backups, structured logging and metrics, a dependency audit, a security review, and separate demo and production deployments.
+## Phase 8: Hardening & pilot ✅
+- Production Dockerfiles, CI (typecheck, unit, e2e, images), Postgres RLS, backups, structured logging and metrics, a dependency audit, a security review, and separate demo and production deployments.
+- Runbook: [DEPLOYMENT.md](DEPLOYMENT.md). Still open: first CI run on GitHub, ESLint, image registry, high availability, per-account lockout (see PROJECT_STATUS.md).
+
+## Next: pilot
+- Deploy the demo environment, run CI on GitHub, onboard the first merchants and a real bank or gateway integration, and a physical soundbox.

@@ -24,7 +24,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
       if (f.evaluate().isNotEmpty) return;
     }
-    throw TestFailure('Timed out waiting for $f');
+    final onScreen = find.byType(RichText).evaluate().map((e) => (e.widget as RichText).text.toPlainText()).join(' | ');
+    throw TestFailure('Timed out waiting for $f\nOn screen: $onScreen');
   }
 
   testWidgets('sign in, then a demo payment arrives live on the home feed', (tester) async {

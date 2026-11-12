@@ -30,8 +30,9 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 
 - Merchant directory, approval, suspend and close, provider catalogue, plans, platform audit log, and system health.
 
-## Phase 5: Flutter mobile app (`apps/mobile`)
+## Phase 5: Flutter mobile app (`apps/mobile`) ✅
 - Same API. Secure token storage, FCM push with spoken payment alerts, live feed, outlet filter, and km/en/zh.
+- Still open: a Firebase project for closed-app push, an iOS build, branded launcher icon and splash, and release signing (see PROJECT_STATUS.md).
 
 ## Phase 6: Reports, subscriptions & limits
 - Daily, weekly and monthly reports with CSV/PDF export. Plan limits are enforced server-side. Subscription lifecycle and billing records.

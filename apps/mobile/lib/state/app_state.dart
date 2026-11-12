@@ -120,7 +120,58 @@ final realtimeStatusProvider = StreamProvider<RealtimeStatus>((ref) async* {
   yield* rt.status;
 });
 
-final todaySummaryProvider = FutureProvider.autoDispose<Summary>((ref) => ref.watch(repoProvider).todaySummary());
+/// Outlets of the active company that this member may see.
+final outletsProvider = FutureProvider.autoDispose<List<Outlet>>((ref) async {
+  final companyId = ref.watch(sessionProvider.select((s) => s.value?.activeCompanyId));
+  if (companyId == null) return const [];
+  return ref.watch(repoProvider).outlets();
+});
+
+/// The outlet this phone follows (null = all outlets). Remembered per company, because a
+/// counter phone usually belongs to one shop.
+class OutletChoice extends Notifier<String?> {
+  String? _companyId;
+  String get _key => 'onepay.outlet.$_companyId';
+
+  @override
+  String? build() {
+    _companyId = ref.watch(sessionProvider.select((s) => s.value?.activeCompanyId));
+    if (_companyId != null) {
+      Future(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final saved = prefs.getString(_key);
+        if (ref.mounted && saved != null) state = saved;
+      });
+    }
+    return null;
+  }
+
+  Future<void> set(String? outletId) async {
+    state = outletId;
+    if (_companyId == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (outletId == null) {
+      await prefs.remove(_key);
+    } else {
+      await prefs.setString(_key, outletId);
+    }
+  }
+}
+
+final outletChoiceProvider = NotifierProvider<OutletChoice, String?>(OutletChoice.new);
+
+/// The outlet filter actually applied: a remembered outlet that was closed or is no longer
+/// visible to this member falls back to all outlets.
+final selectedOutletProvider = Provider<String?>((ref) {
+  final id = ref.watch(outletChoiceProvider);
+  if (id == null) return null;
+  final outlets = ref.watch(outletsProvider);
+  if (!outlets.hasValue) return id;
+  return outlets.requireValue.any((o) => o.id == id) ? id : null;
+});
+
+final todaySummaryProvider = FutureProvider.autoDispose<Summary>(
+    (ref) => ref.watch(repoProvider).todaySummary(outletId: ref.watch(selectedOutletProvider)));
 
 /// Latest payments, kept current by the realtime feed.
 class FeedController extends AsyncNotifier<List<Txn>> {
@@ -128,10 +179,14 @@ class FeedController extends AsyncNotifier<List<Txn>> {
   Future<List<Txn>> build() async {
     final sub = ref.watch(realtimeProvider).events.listen(_onEvent);
     ref.onDispose(sub.cancel);
-    return (await ref.watch(repoProvider).transactions(pageSize: 20)).items;
+    final outletId = ref.watch(selectedOutletProvider);
+    return (await ref.watch(repoProvider).transactions(pageSize: 20, outletId: outletId)).items;
   }
 
   void _onEvent(RealtimeEvent e) {
+    // Following one outlet: other outlets' payments are neither listed nor announced.
+    final outletId = ref.read(selectedOutletProvider);
+    if (outletId != null && e.txn.outletId != outletId) return;
     final current = state.hasValue ? state.requireValue : const <Txn>[];
     final next = [...current];
     final i = next.indexWhere((t) => t.id == e.txn.id);
@@ -148,7 +203,8 @@ class FeedController extends AsyncNotifier<List<Txn>> {
   }
 
   Future<void> reload() async {
-    state = AsyncData((await ref.read(repoProvider).transactions(pageSize: 20)).items);
+    final outletId = ref.read(selectedOutletProvider);
+    state = AsyncData((await ref.read(repoProvider).transactions(pageSize: 20, outletId: outletId)).items);
     ref.invalidate(todaySummaryProvider);
   }
 }

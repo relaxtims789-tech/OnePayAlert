@@ -40,6 +40,7 @@ class HomeScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () => ref.read(feedProvider.notifier).reload(),
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+          const OutletChips(padding: EdgeInsets.only(bottom: 12)),
           _TodayCard(summary: summary),
           const SizedBox(height: 16),
           Card(

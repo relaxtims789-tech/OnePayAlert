@@ -23,7 +23,7 @@ class AlertService {
   Future<void> init() async {
     if (_ready) return;
     await _notifications.initialize(
-      const InitializationSettings(
+      settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
@@ -39,10 +39,10 @@ class AlertService {
     await init();
     final text = paymentAlertText(locale, txn.amountMinor, txn.currency, txn.payerName);
     await _notifications.show(
-      _id++,
-      txn.isSimulated ? '[DEMO] One PayAlert' : 'One PayAlert',
-      text,
-      const NotificationDetails(android: _channel, iOS: DarwinNotificationDetails(presentSound: true)),
+      id: _id++,
+      title: txn.isSimulated ? '[DEMO] One PayAlert' : 'One PayAlert',
+      body: text,
+      notificationDetails: const NotificationDetails(android: _channel, iOS: DarwinNotificationDetails(presentSound: true)),
     );
     if (speak) await _speak(text, locale);
   }

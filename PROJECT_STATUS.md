@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-11 — end of Phase 4_
+_Last updated: 2026-11-12 — end of Phase 5_
 
 ## Phase overview
 
@@ -13,14 +13,64 @@ _Last updated: 2026-11-11 — end of Phase 4_
 | 2 | Bank/gateway connections + transaction ingestion (webhooks, idempotency, RabbitMQ, Redis, WebSocket, FCM) | ✅ **Done** |
 | 3 | Merchant web dashboard (Next.js) | ✅ **Done** |
 | 4 | MysoftKH Super Admin dashboard (Next.js) | ✅ **Done** |
-| 5 | Flutter mobile app (Android/iOS) | ⏳ Next (needs Flutter SDK installed) |
-| 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | Not started |
+| 5 | Flutter mobile app (Android/iOS) | ✅ **Done** (Android verified; iOS not yet built) |
+| 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | ⏳ Next |
 | 7 | Soundbox devices over EMQX MQTT | Not started |
 | 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | Not started |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 12 shared + 8 web-core + 17 API + 5 merchant-web + 6 admin-web unit tests, **54 API e2e** (real PostgreSQL, Redis and RabbitMQ) and **20 browser e2e** (11 merchant + 9 admin, Playwright in Chrome against the real stack). All passing.
+**Test totals:** 12 shared + 8 web-core + 17 API + 5 merchant-web + 6 admin-web unit tests, **54 API e2e** (real PostgreSQL, Redis and RabbitMQ) and **20 browser e2e** (11 merchant + 9 admin, Playwright in Chrome against the real stack), and for the mobile app **23 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Phase 5: what was built
+
+### One PayAlert mobile app (`apps/mobile`, Flutter 3.47 / Dart 3.13, Android + iOS)
+- **Sign in** with the same accounts as the merchant dashboard. The access token is kept in memory, and the refresh token in the platform keystore (Android Keystore / iOS Keychain via `flutter_secure_storage`). Tokens are never written to plain preferences.
+- **Session handling** mirrors the web BFF: on a 401 the app refreshes once and retries. Concurrent requests share a single refresh, because refresh tokens are single-use. A session the server has ended returns to sign-in with a "session expired" notice. Being offline is not treated as signing out.
+- **Home:** today's received total in USD and KHR (successful payments only), with counts of successful, pending and failed payments. Below it, a **live feed** over the `/realtime` Socket.IO connection, with a Live / Connecting / Offline indicator. The socket reconnects on its own and renews the token when needed.
+- **Payment alerts while the app is open:** a heads-up notification with sound and, when the phone has a voice for the language, the amount **spoken aloud** in Khmer, English or Chinese. There is a sound on/off switch. Only `SUCCESS` payments alert. Pending payments are shown as pending, never as money received, and demo payments are tagged "Demo" and "[DEMO]".
+- **Outlet filter:** "All outlets / Outlet A / Outlet B". The choice applies to the Today total, the live feed, alerts and the Transactions list. It is remembered per company on the device, because a counter phone usually belongs to one shop. It is hidden when the member sees only one outlet. Outlet-restricted staff only ever get their own outlets (enforced by the API).
+- **Transactions:** today / 7 days / 30 days, status filter, infinite scroll, pull to refresh, and a details sheet.
+- **Settings:** profile, company and role, language (saved to the profile, so server push uses it too), sound alerts, push status, and sign out.
+- **Languages:** Khmer (default before sign-in), English and Chinese via ARB files and `flutter gen-l10n`. Khmer months and Phnom Penh time (UTC+7) are used for dates, and money uses integer minor units (`$12.50`, `៛18,000`).
+- **Push when the app is closed (FCM):** wired up but **off unless the build is given Firebase settings** (`--dart-define=FIREBASE_*`). Without them the Settings screen says push is not configured. Nothing is simulated. The app registers its token with `PUT /me/push-tokens` and removes it on sign-out, so the next user of the phone does not get the previous user's alerts.
+
+### Android build setup
+- App name "One PayAlert", application id `com.mysoftkh.onepay_mobile`.
+- `INTERNET` and `POST_NOTIFICATIONS` permissions.
+- Core library desugaring and `compileSdk 37` (required by `flutter_local_notifications` 23); AGP 9.1.1.
+- **Plain HTTP is allowed in debug builds only**, and only to `10.0.2.2`, `localhost` and `127.0.0.1` (`src/debug/res/xml/network_security_config.xml`). Release builds keep Android's HTTPS-only default.
+
+### Bugs found by running on a real emulator
+- **Every API call went to `/api/v1auth/login`:** Dio joins the base URL and path as plain text, so the missing trailing slash broke every request. Unit tests had not caught it because they inject their own HTTP client. Fixed (`apiBaseOptions()`), and a test now pins the real URLs.
+- **Pending payments were drawn as `+$12.00`**, which reads as money received. The `+` is now shown for successful payments only.
+
+### How to run the app
+```powershell
+. .\tools\dev-env.ps1                      # Flutter, Java 17 and Android SDK from D:\dev, this session only
+cd apps\mobile
+flutter emulators --launch onepay          # or plug in a phone with USB debugging
+flutter run                                # talks to the API at http://10.0.2.2:4100 (the host machine)
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:4100   # a real phone on the same Wi-Fi
+```
+The API, Postgres, Redis and RabbitMQ must be running (see "How to run" in Phase 1).
+
+### Tests (all passing)
+- `flutter analyze`: no issues.
+- `flutter test`: 23 unit and widget tests covering money and date formatting, the token/refresh client (single-flight refresh, retry, session expiry, offline), the API URLs, translation completeness for km/zh, the login screen, payment tiles and the outlet filter.
+- `flutter test integration_test/app_test.dart` on the Android 16 emulator against the real local API: it registers a throwaway merchant, signs in through the UI, creates a demo connection and simulates a payment. It then checks that the payment arrives **live** on the home feed and in Transactions, and signs out.
+- Checked by hand on the emulator in Khmer: the Today total, live feed, and outlet filter (a payment at another outlet was neither listed nor announced), plus the Transactions and Settings screens.
+
+### Phase 5 known gaps
+- **FCM push is not configured:** it needs a Firebase project (`google-services` values passed as dart-defines, plus the server's service account). Closed-app push has therefore **not been tested on a device**.
+- **FCM token API:** `firebase_messaging` 17 deprecates `getToken()` in favour of `register()`, which returns a Firebase Installation ID for FCM's newer direct-send API. The server sends to registration tokens, so the app keeps `getToken()` for now. The app and API should be migrated together.
+- **iOS has not been built or run:** that needs a Mac with Xcode, an Apple developer account, and APNs set up in Firebase.
+- **Launcher icon and splash screen** are still Flutter's defaults. Branded assets are needed.
+- **Release signing** is not configured: release builds are signed with the debug key.
+- **Server error messages are English-only** (for example a validation message shown on the Khmer login screen). Localising API errors belongs with the Phase 6 i18n work.
+- **Spoken alerts** depend on the phone having a Khmer, English or Chinese text-to-speech voice. Without one, only the notification sound plays. The voice was not audible-tested on the emulator.
 
 ---
 
@@ -276,5 +326,5 @@ npm test && npm run test:e2e
 - ~~Per-request DB revalidation cost~~: resolved in Phase 2 with a version-invalidated Redis cache.
 - **Postgres Row-Level Security** as a second line of tenant defence is planned for Phase 8.
 - **KHR minor unit:** uses the ISO 4217 exponent of 2 for interop. KHR is displayed with 0 decimals.
-- **Flutter SDK is not installed** on the dev machine. It is required before Phase 5.
+- ~~Flutter SDK is not installed~~: resolved in Phase 5. Flutter, JDK 17 and the Android SDK live in `D:\dev` and are put on PATH per session by `tools/dev-env.ps1`.
 - **Not a git commit yet:** the repository is initialised, but nothing has been committed.

@@ -57,11 +57,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     _load();
   }
 
+  void _select({required _Range range, String? status, bool setStatus = false}) {
+    _range = range;
+    if (setStatus) _status = status;
+    _reset();
+  }
+
   Future<void> _load() async {
     if (_loading || !_hasMore) return;
     setState(() => _loading = true);
     try {
-      final p = await ref.read(repoProvider).transactions(page: _page + 1, from: _from, status: _status);
+      final p = await ref.read(repoProvider).transactions(page: _page + 1, from: _from, status: _status, outletId: ref.read(selectedOutletProvider));
       if (!mounted) return;
       setState(() {
         _items.addAll(p.items);
@@ -83,6 +89,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final t = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider);
     // New live payments refresh the list.
+    ref.listen(selectedOutletProvider, (_, _) => _reset());
     ref.listen(feedProvider, (prev, next) {
       if (prev?.hasValue == true && next.hasValue && prev!.requireValue.firstOrNull?.id != next.requireValue.firstOrNull?.id) _reset();
     });
@@ -95,16 +102,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(t.transactions, style: const TextStyle(fontWeight: FontWeight.w700))),
       body: Column(children: [
+        const OutletChips(padding: EdgeInsets.fromLTRB(16, 4, 16, 0)),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(children: [
-            chip(t.today, _range == _Range.today, () => {_range = _Range.today, _reset()}),
-            chip(t.last7, _range == _Range.d7, () => {_range = _Range.d7, _reset()}),
-            chip(t.last30, _range == _Range.d30, () => {_range = _Range.d30, _reset()}),
+            chip(t.today, _range == _Range.today, () => _select(range: _Range.today)),
+            chip(t.last7, _range == _Range.d7, () => _select(range: _Range.d7)),
+            chip(t.last30, _range == _Range.d30, () => _select(range: _Range.d30)),
             const SizedBox(width: 8),
             for (final s in <String?>[null, 'SUCCESS', 'PENDING', 'FAILED'])
-              chip(s == null ? t.allStatuses : statusLabel(t, s), _status == s, () => {_status = s, _reset()}),
+              chip(s == null ? t.allStatuses : statusLabel(t, s), _status == s, () => _select(range: _range, status: s, setStatus: true)),
           ]),
         ),
         Expanded(

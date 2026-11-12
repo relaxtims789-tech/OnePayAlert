@@ -12,17 +12,25 @@ class Repository {
   Future<Me> setLocale(String locale) async =>
       Me.fromJson(Map<String, dynamic>.from(await api.request('PATCH', 'auth/me', data: {'locale': locale}) as Map));
 
-  Future<Summary> todaySummary() async {
+  Future<Summary> todaySummary({String? outletId}) async {
     final from = startOfBusinessDay(0).toIso8601String();
-    return Summary.fromJson(Map<String, dynamic>.from(await api.request('GET', 'transactions/summary', query: {'from': from}) as Map));
+    final body = await api.request('GET', 'transactions/summary', query: {'from': from, 'outletId': ?outletId});
+    return Summary.fromJson(Map<String, dynamic>.from(body as Map));
   }
 
-  Future<Page<Txn>> transactions({int page = 1, int pageSize = 20, DateTime? from, String? status}) async {
+  /// Active outlets the member may see (the API already limits outlet-restricted staff).
+  Future<List<Outlet>> outlets() async {
+    final body = await api.request('GET', 'outlets', query: {'pageSize': 100, 'isActive': 'true'});
+    return Page.fromJson(Map<String, dynamic>.from(body as Map), Outlet.fromJson).items;
+  }
+
+  Future<Page<Txn>> transactions({int page = 1, int pageSize = 20, DateTime? from, String? status, String? outletId}) async {
     final body = await api.request('GET', 'transactions', query: {
       'page': page,
       'pageSize': pageSize,
-      if (from != null) 'from': from.toUtc().toIso8601String(),
-      if (status != null) 'status': status,
+      'from': ?from?.toUtc().toIso8601String(),
+      'status': ?status,
+      'outletId': ?outletId,
     });
     return Page.fromJson(Map<String, dynamic>.from(body as Map), Txn.fromJson);
   }

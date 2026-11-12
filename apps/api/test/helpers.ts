@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import type { AuthTokens } from '@onepay/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { MQTT_BRIDGE, type MqttBridge } from '../src/devices/mqtt.bridge';
 import { PUSH_SENDER, type PushSender } from '../src/notifications/push.sender';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { configureApp } from '../src/setup';
@@ -10,9 +11,10 @@ import { configureApp } from '../src/setup';
 export const API = '/api/v1';
 export const PASSWORD = 'Str0ngPassw0rd';
 
-export async function createTestApp(opts: { pushSender?: PushSender } = {}): Promise<INestApplication> {
+export async function createTestApp(opts: { pushSender?: PushSender; mqttBridge?: MqttBridge } = {}): Promise<INestApplication> {
   let builder = Test.createTestingModule({ imports: [AppModule] });
   if (opts.pushSender) builder = builder.overrideProvider(PUSH_SENDER).useValue(opts.pushSender);
+  if (opts.mqttBridge) builder = builder.overrideProvider(MQTT_BRIDGE).useValue(opts.mqttBridge);
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: ['error'], rawBody: true });
   await configureApp(app);
@@ -26,16 +28,28 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}.${Date.now()}.${counter}@test.onepay.local`;
 }
 
+/**
+ * Registers a merchant through the public API. New merchants start a Starter trial; unless a
+ * test is about plan limits, it gets the Enterprise plan so limits do not get in its way.
+ */
 export async function registerMerchant(
   app: INestApplication,
   companyName: string,
-): Promise<{ email: string; tokens: AuthTokens }> {
+  opts: { plan?: 'STARTER' | 'BUSINESS' | 'ENTERPRISE' } = {},
+): Promise<{ email: string; tokens: AuthTokens; companyId: string }> {
   const email = uniqueEmail(companyName.toLowerCase().replace(/\W+/g, ''));
   const res = await request(app.getHttpServer())
     .post(`${API}/auth/register`)
     .send({ fullName: `${companyName} Owner`, email, password: PASSWORD, companyName })
     .expect(201);
-  return { email, tokens: res.body as AuthTokens };
+  const prisma = prismaOf(app);
+  const membership = await prisma.membership.findFirstOrThrow({ where: { user: { email } } });
+  const plan = opts.plan ?? 'ENTERPRISE';
+  if (plan !== 'STARTER') {
+    const p = await prisma.plan.findUniqueOrThrow({ where: { code: plan } });
+    await prisma.subscription.updateMany({ where: { companyId: membership.companyId }, data: { planId: p.id } });
+  }
+  return { email, tokens: res.body as AuthTokens, companyId: membership.companyId };
 }
 
 export async function login(

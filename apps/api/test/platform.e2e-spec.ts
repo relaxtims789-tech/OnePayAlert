@@ -115,7 +115,8 @@ describe('Platform / MysoftKH Super Admin (e2e)', () => {
     expect(d.members.map((m) => m.role)).toContain('OWNER');
     expect(d.outlets.map((o) => o.code)).toContain('MAIN');
     expect(d.subscription?.status).toBe('TRIALING');
-    expect(d.subscription?.plan.code).toBe('STARTER');
+    // registerMerchant() moves test merchants to Enterprise (the Starter trial is covered in billing.e2e-spec).
+    expect(d.subscription?.plan.code).toBe('ENTERPRISE');
     expect(d.connections.length).toBeGreaterThanOrEqual(2);
     const raw = JSON.stringify(res.body);
     expect(raw).not.toContain('top-secret');

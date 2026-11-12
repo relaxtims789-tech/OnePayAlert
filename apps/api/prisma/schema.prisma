@@ -79,10 +79,11 @@ enum TransactionDirection {
   DEBIT
 }
 
+/// Lifecycle of a soundbox. Connectivity is tracked separately (`online`, `lastSeenAt`).
+/// UNASSIGNED = in MysoftKH inventory, ACTIVE = claimed by a merchant, DISABLED = blocked by MysoftKH.
 enum DeviceStatus {
   UNASSIGNED
   ACTIVE
-  OFFLINE
   DISABLED
 }
 
@@ -97,6 +98,26 @@ enum SubscriptionStatus {
 enum BillingInterval {
   MONTH
   YEAR
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  VOID
+}
+
+/// NEW = first paid period (from trial or after expiry), RENEWAL = next period of the same
+/// subscription, PLAN_CHANGE = switch to another plan starting when paid.
+enum InvoiceKind {
+  NEW
+  RENEWAL
+  PLAN_CHANGE
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  OTHER
 }
 
 enum WebhookEventSource {
@@ -138,6 +159,7 @@ model Company {
   transactions    Transaction[]
   devices         Device[]
   subscriptions   Subscription[]
+  invoices        Invoice[]
   auditLogs       AuditLog[]
 
   @@index([status])
@@ -274,19 +296,19 @@ model PushToken {
 
 /// Platform-managed catalogue of supported banks / wallets / gateways (e.g. Bakong KHQR).
 model PaymentProvider {
-  id        String       @id @default(uuid()) @db.Uuid
-  code      String       @unique @db.VarChar(40)
-  name      String       @db.VarChar(120)
-  type      ProviderType
-  logoUrl   String?      @map("logo_url") @db.VarChar(500)
+  id         String       @id @default(uuid()) @db.Uuid
+  code       String       @unique @db.VarChar(40)
+  name       String       @db.VarChar(120)
+  type       ProviderType
+  logoUrl    String?      @map("logo_url") @db.VarChar(500)
   /// Integration adapter used for this provider (e.g. ONEPAY_WEBHOOK_V1, SIMULATOR).
   /// NULL = no live integration yet; connections stay PENDING and cannot receive events.
-  adapterKey String?     @map("adapter_key") @db.VarChar(40)
+  adapterKey String?      @map("adapter_key") @db.VarChar(40)
   /// Demo-only provider. Never usable when APP_ENV=production.
-  isDemo    Boolean      @default(false) @map("is_demo")
-  isActive  Boolean      @default(true) @map("is_active")
-  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isDemo     Boolean      @default(false) @map("is_demo")
+  isActive   Boolean      @default(true) @map("is_active")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   connections BankConnection[]
 
@@ -296,22 +318,22 @@ model PaymentProvider {
 /// A merchant's authorized link to a bank/gateway account.
 /// `credentialCiphertext` holds envelope-encrypted secrets; it is never serialised to clients.
 model BankConnection {
-  id                   String               @id @default(uuid()) @db.Uuid
-  companyId            String               @map("company_id") @db.Uuid
-  outletId             String?              @map("outlet_id") @db.Uuid
-  providerId           String               @map("provider_id") @db.Uuid
-  displayName          String               @map("display_name") @db.VarChar(120)
-  accountName          String?              @map("account_name") @db.VarChar(160)
-  accountNumberMasked  String?              @map("account_number_masked") @db.VarChar(40)
-  currency             Currency
-  status               BankConnectionStatus @default(PENDING)
-  credentialCiphertext String?              @map("credential_ciphertext")
+  id                      String               @id @default(uuid()) @db.Uuid
+  companyId               String               @map("company_id") @db.Uuid
+  outletId                String?              @map("outlet_id") @db.Uuid
+  providerId              String               @map("provider_id") @db.Uuid
+  displayName             String               @map("display_name") @db.VarChar(120)
+  accountName             String?              @map("account_name") @db.VarChar(160)
+  accountNumberMasked     String?              @map("account_number_masked") @db.VarChar(40)
+  currency                Currency
+  status                  BankConnectionStatus @default(PENDING)
+  credentialCiphertext    String?              @map("credential_ciphertext")
   /// AES-256-GCM encrypted HMAC secret used to verify inbound webhooks.
-  webhookSecretCiphertext String?           @map("webhook_secret_ciphertext")
-  lastSyncedAt         DateTime?            @map("last_synced_at") @db.Timestamptz(6)
-  lastError            String?              @map("last_error") @db.VarChar(500)
-  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  webhookSecretCiphertext String?              @map("webhook_secret_ciphertext")
+  lastSyncedAt            DateTime?            @map("last_synced_at") @db.Timestamptz(6)
+  lastError               String?              @map("last_error") @db.VarChar(500)
+  createdAt               DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company       Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   outlet        Outlet?         @relation(fields: [outletId], references: [id], onDelete: SetNull)
@@ -385,24 +407,38 @@ model WebhookEvent {
 
 // ───────────────────────────── Soundbox devices ─────────────────────────────
 
+/// A payment soundbox. Connects to EMQX with username = client id = serial number and a per-device
+/// password; EMQX asks the API (HTTP auth/ACL hooks) whether to let it in and what it may touch.
 model Device {
-  id           String       @id @default(uuid()) @db.Uuid
-  companyId    String?      @map("company_id") @db.Uuid
-  outletId     String?      @map("outlet_id") @db.Uuid
-  serialNumber String       @unique @map("serial_number") @db.VarChar(64)
-  model        String       @db.VarChar(64)
-  firmware     String?      @db.VarChar(32)
-  mqttClientId String?      @unique @map("mqtt_client_id") @db.VarChar(128)
-  status       DeviceStatus @default(UNASSIGNED)
-  volume       Int          @default(80)
-  lastSeenAt   DateTime?    @map("last_seen_at") @db.Timestamptz(6)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id            String       @id @default(uuid()) @db.Uuid
+  companyId     String?      @map("company_id") @db.Uuid
+  outletId      String?      @map("outlet_id") @db.Uuid
+  serialNumber  String       @unique @map("serial_number") @db.VarChar(64)
+  model         String       @db.VarChar(64)
+  /// Merchant's label, e.g. "Front counter".
+  name          String?      @db.VarChar(80)
+  firmware      String?      @db.VarChar(32)
+  /// Argon2 hash of the device's MQTT password (shown once, flashed onto the device).
+  secretHash    String       @map("secret_hash")
+  /// Argon2 hash of the claim code printed on the box (lets a merchant prove they hold the device).
+  claimCodeHash String       @map("claim_code_hash")
+  status        DeviceStatus @default(UNASSIGNED)
+  /// Announcement language and volume (0-100).
+  locale        Locale       @default(km)
+  volume        Int          @default(80)
+  online        Boolean      @default(false)
+  lastSeenAt    DateTime?    @map("last_seen_at") @db.Timestamptz(6)
+  batteryPct    Int?         @map("battery_pct")
+  signalDbm     Int?         @map("signal_dbm")
+  claimedAt     DateTime?    @map("claimed_at") @db.Timestamptz(6)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   outlet  Outlet?  @relation(fields: [outletId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
+  @@index([companyId, outletId])
   @@map("devices")
 }
 
@@ -424,6 +460,7 @@ model Plan {
   updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   subscriptions Subscription[]
+  invoices      Invoice[]
 
   @@map("plans")
 }
@@ -440,11 +477,50 @@ model Subscription {
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  plan    Plan    @relation(fields: [planId], references: [id])
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
 
   @@index([companyId, status])
+  @@index([status, currentPeriodEnd])
   @@map("subscriptions")
+}
+
+/// A bill from MysoftKH to a merchant. Paid invoices are confirmed by MysoftKH staff after the
+/// money has actually arrived (bank transfer or cash) — nothing marks an invoice paid on its own.
+model Invoice {
+  id               String          @id @default(uuid()) @db.Uuid
+  /// Human-readable, unique and sequential: INV-2026-000123.
+  number           String          @unique @db.VarChar(32)
+  companyId        String          @map("company_id") @db.Uuid
+  subscriptionId   String          @map("subscription_id") @db.Uuid
+  planId           String          @map("plan_id") @db.Uuid
+  kind             InvoiceKind
+  status           InvoiceStatus   @default(OPEN)
+  /// Snapshot of the plan price when the invoice was issued.
+  amountMinor      BigInt          @map("amount_minor")
+  currency         Currency
+  interval         BillingInterval
+  dueAt            DateTime        @map("due_at") @db.Timestamptz(6)
+  /// The service period this payment bought; set when the invoice is paid.
+  periodStart      DateTime?       @map("period_start") @db.Timestamptz(6)
+  periodEnd        DateTime?       @map("period_end") @db.Timestamptz(6)
+  paidAt           DateTime?       @map("paid_at") @db.Timestamptz(6)
+  paymentMethod    PaymentMethod?  @map("payment_method")
+  paymentReference String?         @map("payment_reference") @db.VarChar(120)
+  /// MysoftKH staff member who confirmed the payment.
+  confirmedById    String?         @map("confirmed_by_id") @db.Uuid
+  voidedAt         DateTime?       @map("voided_at") @db.Timestamptz(6)
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  plan         Plan         @relation(fields: [planId], references: [id])
+
+  @@index([companyId, createdAt(sort: Desc)])
+  @@index([status, dueAt])
+  @@map("invoices")
 }
 
 // ───────────────────────────── Audit ─────────────────────────────

@@ -253,5 +253,6 @@ export class TransactionsController {
 @Module({
   controllers: [TransactionsController],
   providers: [TransactionsService],
+  exports: [TransactionsService],
 })
 export class TransactionsModule {}

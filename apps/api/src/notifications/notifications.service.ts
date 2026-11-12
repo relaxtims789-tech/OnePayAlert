@@ -9,13 +9,14 @@ import {
   type TransactionDto,
   type TransactionStatus,
 } from '@onepay/shared';
+import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PUSH_SENDER, type PushSender } from './push.sender';
 
 /**
  * Fan-out of payment events to every channel: WebSocket (dashboards, app in foreground) and
- * FCM push (app in background). Soundbox (MQTT) is added in Phase 7 through the same hook.
+ * FCM push (app in background) and soundboxes (MQTT).
  */
 @Injectable()
 export class NotificationsService {
@@ -25,6 +26,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
     @Inject(PUSH_SENDER) private readonly push: PushSender,
+    private readonly devices: DevicesService,
   ) {}
 
   async transactionChanged(
@@ -38,7 +40,15 @@ export class NotificationsService {
     );
     // Audible/visible "money received" alerts only when a payment becomes successful.
     const becameSuccessful = txn.status === 'SUCCESS' && previousStatus !== 'SUCCESS';
-    if (becameSuccessful && txn.direction === 'CREDIT') await this.pushPaymentAlert(txn);
+    if (becameSuccessful && txn.direction === 'CREDIT') {
+      await Promise.all([
+        this.pushPaymentAlert(txn),
+        this.devices.announcePayment(txn).catch((e: unknown) => {
+          this.logger.error(`Soundbox announcement for ${txn.id} failed: ${e instanceof Error ? e.message : String(e)}`);
+          return 0;
+        }),
+      ]);
+    }
   }
 
   /** Users who may see this transaction: active members with TRANSACTION_READ and outlet access. */

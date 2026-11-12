@@ -34,11 +34,13 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 - Same API. Secure token storage, FCM push with spoken payment alerts, live feed, outlet filter, and km/en/zh.
 - Still open: a Firebase project for closed-app push, an iOS build, branded launcher icon and splash, and release signing (see PROJECT_STATUS.md).
 
-## Phase 6: Reports, subscriptions & limits
+## Phase 6: Reports, subscriptions & limits ✅
 - Daily, weekly and monthly reports with CSV/PDF export. Plan limits are enforced server-side. Subscription lifecycle and billing records.
+- Also: API error messages in km/en/zh. Still open: online invoice payment, proration, invoice PDFs and reminder emails (see PROJECT_STATUS.md).
 
-## Phase 7: Soundbox devices
+## Phase 7: Soundbox devices ✅
 - Device provisioning and assignment, EMQX auth (per-device credentials and ACL), payment announcements over MQTT, and online/offline telemetry.
+- Protocol for firmware developers: [SOUNDBOX_PROTOCOL.md](SOUNDBOX_PROTOCOL.md). Still open: a physical device, MQTT over TLS, kicking disabled devices, firmware updates (see PROJECT_STATUS.md).
 
 ## Phase 8: Hardening & pilot
 - Production Dockerfiles, CI (lint, typecheck, unit, e2e), Postgres RLS, backups, structured logging and metrics, a dependency audit, a security review, and separate demo and production deployments.

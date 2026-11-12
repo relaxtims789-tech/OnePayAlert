@@ -1,3 +1,4 @@
+import type { EntitlementsService } from '../billing/entitlements.service';
 import { ForbiddenException } from '@nestjs/common';
 import type { AuditService } from '../audit/audit.service';
 import type { TenantUser } from '../common/auth-user';
@@ -25,6 +26,7 @@ function service(isProduction: boolean) {
     config,
     {} as AuditService,
     ingestion,
+    {} as EntitlementsService,
   );
   return { svc, prisma, ingestion };
 }

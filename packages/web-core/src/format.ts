@@ -65,3 +65,9 @@ export function businessDate(d: Date): string {
   const p = ppParts(d);
   return `${p.year}-${String(p.month + 1).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
 }
+
+/** Start of a Phnom Penh calendar day ("2026-03-01" → 2026-02-28T17:00:00.000Z). */
+export function businessDayStart(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d) - 7 * 3600_000);
+}

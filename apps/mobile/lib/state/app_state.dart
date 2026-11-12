@@ -90,7 +90,9 @@ final sessionProvider = AsyncNotifierProvider<SessionController, Me?>(SessionCon
 /// UI language: the profile's language once signed in, Khmer before that.
 final localeProvider = Provider<String>((ref) {
   final me = ref.watch(sessionProvider);
-  return (me.hasValue ? me.requireValue?.locale : null) ?? 'km';
+  final locale = (me.hasValue ? me.requireValue?.locale : null) ?? 'km';
+  ref.read(apiProvider).language = locale;
+  return locale;
 });
 
 class SoundSetting extends Notifier<bool> {

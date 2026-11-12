@@ -3,10 +3,12 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditService } from './audit/audit.service';
 import { AuthModule } from './auth/auth.module';
+import { BillingModule } from './billing/billing.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PermissionsGuard } from './auth/permissions.guard';
-import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { ApiExceptionFilter } from './common/api-exception.filter';
 import { CompaniesModule } from './companies/companies.module';
+import { DevicesModule } from './devices/devices.module';
 import { AppConfig } from './config/app-config.service';
 import { AppConfigModule } from './config/config.module';
 import { EmployeesModule } from './employees/employees.module';
@@ -18,6 +20,7 @@ import { OutletsModule } from './outlets/outlets.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PlatformModule } from './platform/platform.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ReportsModule } from './reports/reports.module';
 import { TransactionsModule } from './transactions/transactions.module';
 
 @Global()
@@ -40,6 +43,8 @@ class AuditModule {}
       }),
     }),
     AuthModule,
+    BillingModule,
+    DevicesModule,
     CompaniesModule,
     OutletsModule,
     EmployeesModule,
@@ -47,6 +52,7 @@ class AuditModule {}
     NotificationsModule,
     PaymentsModule,
     TransactionsModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -54,7 +60,7 @@ class AuditModule {}
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
-    { provide: APP_FILTER, useClass: PrismaExceptionFilter },
+    { provide: APP_FILTER, useClass: ApiExceptionFilter },
   ],
 })
 export class AppModule {}

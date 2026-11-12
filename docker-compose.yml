@@ -36,11 +36,26 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  # Future Soundbox integration (Phase 7). Not required for the API to run.
+  # Soundbox broker (Phase 7). Optional: start with `docker compose --profile soundbox up -d emqx`.
+  # EMQX asks the API who may connect (/mqtt/auth) and what each client may touch (/mqtt/acl),
+  # so the API must be running on the host (port 4100) for devices to log in.
+  # `$$` keeps EMQX's own ${username}-style placeholders away from Compose interpolation.
   emqx:
-    image: emqx/emqx:5.8
+    image: emqx/emqx:5.8.6
     container_name: onepay-emqx
     profiles: ["soundbox"]
+    environment:
+      EMQX_NODE__NAME: onepay@127.0.0.1
+      EMQX_AUTHENTICATION__1__MECHANISM: password_based
+      EMQX_AUTHENTICATION__1__BACKEND: http
+      EMQX_AUTHENTICATION__1__METHOD: post
+      EMQX_AUTHENTICATION__1__URL: http://host.docker.internal:4100/api/v1/mqtt/auth
+      EMQX_AUTHENTICATION__1__BODY: '{"username":"$${username}","password":"$${password}","clientid":"$${clientid}"}'
+      EMQX_AUTHENTICATION__1__HEADERS: '{"content-type":"application/json","x-onepay-hook-secret":"${ONEPAY_MQTT_HOOK_SECRET:-dev-only-mqtt-hook-secret-0123456789}"}'
+      EMQX_AUTHORIZATION__NO_MATCH: deny
+      EMQX_AUTHORIZATION__SOURCES: '[{type=http,method=post,url="http://host.docker.internal:4100/api/v1/mqtt/acl",body={username="$${username}",clientid="$${clientid}",topic="$${topic}",action="$${action}"},headers={content-type="application/json",x-onepay-hook-secret="${ONEPAY_MQTT_HOOK_SECRET:-dev-only-mqtt-hook-secret-0123456789}"}}]'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "1883:1883"
       - "18083:18083"

@@ -30,7 +30,7 @@ function startOfBusinessDay(now = new Date()): Date {
   return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) - offset);
 }
 
-function toPlanDto(p: Plan & { _count?: { subscriptions: number } }): PlanDto {
+export function toPlanDto(p: Plan & { _count?: { subscriptions: number } }): PlanDto {
   return {
     id: p.id,
     code: p.code,

@@ -27,6 +27,7 @@ export const Permission = {
   PLATFORM_COMPANIES_MANAGE: 'platform.companies.manage',
   PLATFORM_PROVIDERS_MANAGE: 'platform.providers.manage',
   PLATFORM_PLANS_MANAGE: 'platform.plans.manage',
+  PLATFORM_DEVICES_MANAGE: 'platform.devices.manage',
   PLATFORM_AUDIT_READ: 'platform.audit.read',
 } as const;
 export type Permission = (typeof Permission)[keyof typeof Permission];
@@ -83,6 +84,7 @@ export const PLATFORM_ROLE_PERMISSIONS: Readonly<Record<PlatformRole, readonly P
     P.PLATFORM_COMPANIES_MANAGE,
     P.PLATFORM_PROVIDERS_MANAGE,
     P.PLATFORM_PLANS_MANAGE,
+    P.PLATFORM_DEVICES_MANAGE,
     P.PLATFORM_AUDIT_READ,
   ],
   [PlatformRole.SUPPORT]: [P.PLATFORM_COMPANIES_READ, P.PLATFORM_AUDIT_READ],

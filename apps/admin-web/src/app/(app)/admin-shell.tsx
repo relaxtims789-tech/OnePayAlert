@@ -3,7 +3,7 @@
 import { Badge, ErrorState, LogoMark, Spinner, cn } from '@onepay/ui';
 import { session, setSessionExpiredHandler } from '@onepay/web-core/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Activity, Building2, Gauge, Landmark, LogOut, Menu, ReceiptText, ScrollText, ShieldCheck, UserCog, X } from 'lucide-react';
+import { Activity, Building2, Gauge, Landmark, LogOut, Menu, Receipt, ReceiptText, ScrollText, ShieldCheck, Speaker, UserCog, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -15,6 +15,8 @@ const NAV: { href: string; label: MessageKey; icon: typeof Gauge }[] = [
   { href: '/overview', label: 'nav.overview', icon: Gauge },
   { href: '/merchants', label: 'nav.merchants', icon: Building2 },
   { href: '/plans', label: 'nav.plans', icon: ReceiptText },
+  { href: '/invoices', label: 'nav.invoices', icon: Receipt },
+  { href: '/devices', label: 'nav.devices', icon: Speaker },
   { href: '/providers', label: 'nav.providers', icon: Landmark },
   { href: '/audit', label: 'nav.audit', icon: ScrollText },
   { href: '/health', label: 'nav.health', icon: Activity },

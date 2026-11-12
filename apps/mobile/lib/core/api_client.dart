@@ -42,6 +42,9 @@ class ApiClient {
   final TokenStore _tokens;
   final Dio _dio;
   String? _accessToken;
+
+  /// App language (km/en/zh); the API translates its error messages into it.
+  String language = 'km';
   Future<bool>? _refreshing;
   final _expired = StreamController<void>.broadcast();
 
@@ -64,7 +67,7 @@ class ApiClient {
         path,
         data: data,
         queryParameters: query,
-        options: Options(method: method, headers: {if (token != null) 'Authorization': 'Bearer $token'}),
+        options: Options(method: method, headers: {'Accept-Language': language, if (token != null) 'Authorization': 'Bearer $token'}),
       );
     } on DioException catch (e) {
       throw ApiException(0, e.message ?? 'NETWORK');

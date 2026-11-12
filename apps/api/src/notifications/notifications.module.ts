@@ -4,7 +4,8 @@ import { IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 import type { AuthUser } from '../common/auth-user';
 import { CurrentUser } from '../common/decorators';
 import { PrismaService } from '../prisma/prisma.service';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { DevicesModule } from '../devices/devices.module';
 import { NotificationsService } from './notifications.service';
 import { pushSenderProvider } from './push.sender';
 
@@ -48,9 +49,10 @@ export class PushTokensController {
 }
 
 @Module({
+  imports: [RealtimeModule, DevicesModule],
   controllers: [PushTokensController],
-  providers: [NotificationsService, RealtimeGateway, pushSenderProvider],
-  exports: [NotificationsService, RealtimeGateway],
+  providers: [NotificationsService, pushSenderProvider],
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}
 

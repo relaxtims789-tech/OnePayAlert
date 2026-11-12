@@ -49,7 +49,7 @@ export function useErrorToast() {
       const description =
         !e || e.status === 0
           ? t('common.networkError')
-          : e.status === 403
+          : e.status === 403 && (!e.code || e.code === 'FORBIDDEN')
             ? t('common.forbidden')
             : e.status === 404
               ? t('common.notFound')
@@ -62,6 +62,7 @@ export function useErrorToast() {
 
 export function errorText(err: unknown, t: ReturnType<typeof useI18n>['t']): string {
   if (!(err instanceof ApiError) || err.status === 0) return t('common.networkError');
-  if (err.status === 403) return t('common.forbidden');
+  // Specific 403s (plan limits, ended subscription) carry their own translated message.
+  if (err.status === 403 && (!err.code || err.code === 'FORBIDDEN')) return t('common.forbidden');
   return err.message;
 }

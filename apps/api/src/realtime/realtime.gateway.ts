@@ -66,6 +66,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.expiryTimers.delete(socket.id);
   }
 
+  /** Soundbox online/offline/telemetry changes, to the same audience as that outlet's payments. */
+  emitDevice(companyId: string, outletId: string | null, device: unknown): void {
+    if (!this.server) return;
+    const rooms = [companyRoom(companyId)];
+    if (outletId) rooms.push(outletRoom(outletId));
+    this.server.to(rooms).emit(RealtimeEvent.DEVICE_UPDATED, device);
+  }
+
   emitTransaction(event: RealtimeEvent, txn: TransactionDto): void {
     if (!this.server) return;
     const rooms = [companyRoom(txn.companyId)];

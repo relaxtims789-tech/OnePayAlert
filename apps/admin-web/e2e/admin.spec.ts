@@ -120,6 +120,68 @@ test('creates a plan and moves the merchant onto it', async ({ page }) => {
   await expect(page.getByTestId('subscription')).toContainText('$19.50');
 });
 
+let invoiceNumber = '';
+
+test('confirms a merchant invoice payment, which activates the plan', async ({ page, request }) => {
+  // A second merchant (the first one is suspended above) chooses the Business plan.
+  const email = `billing.${stamp}@admin-e2e.onepay.local`;
+  const reg = await request.post(`${API}/auth/register`, {
+    data: { fullName: 'Billing Owner', email, password: merchant.password, companyName: `Mekong Tea ${stamp}` },
+  });
+  expect(reg.status()).toBe(201);
+  const auth = { Authorization: `Bearer ${(await reg.json()).accessToken}` };
+  const plans = (await (await request.get(`${API}/billing`, { headers: auth })).json()).plans as { id: string; code: string }[];
+  const inv = await request.post(`${API}/billing/checkout`, { headers: auth, data: { planId: plans.find((p) => p.code === 'BUSINESS')!.id } });
+  expect(inv.status()).toBe(200);
+  invoiceNumber = (await inv.json()).number;
+
+  await signIn(page, SUPER_ADMIN.email, SUPER_ADMIN.password);
+  await page.getByRole('link', { name: 'Invoices' }).click();
+  const row = page.getByTestId('invoices-table').getByRole('row').filter({ hasText: invoiceNumber });
+  await expect(row).toContainText(`Mekong Tea ${stamp}`);
+  await expect(row).toContainText('$29.00');
+  await expect(row).toContainText('Unpaid');
+  await page.getByTestId(`mark-paid-${invoiceNumber}`).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText(`Mekong Tea ${stamp}`);
+  await dialog.getByTestId('payment-reference').fill('ABA-E2E-778812');
+  await page.getByTestId('confirm-paid').click();
+  await expect(page.getByText(`Payment confirmed for ${invoiceNumber}`)).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Paid', exact: true }).click();
+  const paid = page.getByTestId('invoices-table').getByRole('row').filter({ hasText: invoiceNumber });
+  await expect(paid).toContainText('ABA-E2E-778812');
+  const billing = await (await request.get(`${API}/billing`, { headers: auth })).json();
+  expect(billing.subscription).toMatchObject({ status: 'ACTIVE', plan: { code: 'BUSINESS' } });
+});
+
+test('registers a soundbox, shows its credentials once, and can disable it', async ({ page }) => {
+  const serial = `SBX-ADM${String(stamp).slice(-6)}`;
+  await signIn(page, SUPER_ADMIN.email, SUPER_ADMIN.password);
+  await page.getByRole('link', { name: 'Soundboxes' }).click();
+  await page.getByTestId('register-device').click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Serial number').fill(serial.toLowerCase());
+  await dialog.getByRole('button', { name: 'Register soundbox' }).click();
+
+  const creds = page.getByRole('dialog');
+  await expect(creds).toContainText('Save these credentials now');
+  await expect(creds.getByTestId('mqtt-username')).toHaveText(serial);
+  expect(((await creds.getByTestId('mqtt-password').textContent()) ?? '').length).toBeGreaterThanOrEqual(32);
+  await expect(creds.getByTestId('claim-code')).toHaveText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  const password = (await creds.getByTestId('mqtt-password').textContent()) ?? '';
+  await creds.getByRole('button', { name: 'I have saved them' }).click();
+
+  const row = page.getByTestId('devices-table').getByRole('row').filter({ hasText: serial });
+  await expect(row).toContainText('In stock');
+  await expect(row).toContainText('Offline');
+  expect(await page.content()).not.toContain(password);
+
+  await row.getByRole('button', { name: 'Disable' }).click();
+  await expect(page.getByText(`${serial} disabled`)).toBeVisible();
+  await expect(row).toContainText('Disabled');
+});
+
 test('shows system health and provider catalogue', async ({ page }) => {
   await signIn(page, SUPER_ADMIN.email, SUPER_ADMIN.password);
   await page.getByRole('link', { name: 'System health' }).click();
@@ -146,6 +208,10 @@ test('support staff get a read-only console', async ({ page }) => {
   await page.goto('/providers');
   await expect(page.getByTestId('providers-table')).toContainText('ABA Bank');
   await expect(page.getByRole('button', { name: 'Disable' })).toHaveCount(0);
+  await page.goto('/invoices');
+  await page.getByRole('tab', { name: 'All', exact: true }).click();
+  await expect(page.getByTestId('invoices-table')).toContainText(invoiceNumber);
+  await expect(page.getByRole('button', { name: 'Confirm payment' })).toHaveCount(0);
 });
 
 test('switches the console to Khmer', async ({ page }) => {

@@ -6,6 +6,7 @@ import { ClientIp, CurrentTenant, RequirePermissions } from '../common/decorator
 import { PaginationQueryDto } from '../common/pagination.dto';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 import { EmployeesService } from './employees.service';
+import { BillingModule } from '../billing/billing.module';
 
 @ApiTags('Employees')
 @ApiBearerAuth()
@@ -54,6 +55,7 @@ export class EmployeesController {
 }
 
 @Module({
+  imports: [BillingModule],
   controllers: [EmployeesController],
   providers: [EmployeesService],
 })

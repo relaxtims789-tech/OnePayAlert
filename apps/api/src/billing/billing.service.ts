@@ -130,15 +130,17 @@ export class BillingService {
       ...(filter.companyId ? { companyId: filter.companyId } : {}),
       ...(filter.status ? { status: filter.status } : {}),
     };
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.invoice.findMany({
+    // A merchant's own invoices go through the tenant client (row-level security); MysoftKH lists all.
+    const db = filter.companyId ? this.prisma.forTenant(filter.companyId) : this.prisma;
+    const [items, total] = await Promise.all([
+      db.invoice.findMany({
         where,
         include: { plan: true, ...(withCompany ? { company: { select: { name: true } } } : {}) },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.invoice.count({ where }),
+      db.invoice.count({ where }),
     ]);
     return { items: items.map(toInvoiceDto), total, page, pageSize };
   }

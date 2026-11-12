@@ -106,19 +106,20 @@ export class BankConnectionsService {
   }
 
   async list(user: TenantUser, q: PaginationQueryDto): Promise<Paginated<BankConnectionDto>> {
+    const db = this.prisma.forTenant(user.companyId);
     const where: Prisma.BankConnectionWhereInput = {
       ...this.scope(user),
       ...(q.search ? { displayName: { contains: q.search, mode: 'insensitive' } } : {}),
     };
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.bankConnection.findMany({
+    const [items, total] = await Promise.all([
+      db.bankConnection.findMany({
         where,
         include: { provider: true },
         orderBy: { createdAt: 'asc' },
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
       }),
-      this.prisma.bankConnection.count({ where }),
+      db.bankConnection.count({ where }),
     ]);
     return { items: items.map((c) => this.toDto(c)), total, page: q.page, pageSize: q.pageSize };
   }
@@ -330,7 +331,8 @@ export class BankConnectionsService {
   }
 
   private async findOwned(user: TenantUser, id: string): Promise<ConnectionWithProvider> {
-    const c = await this.prisma.bankConnection.findFirst({
+    const db = this.prisma.forTenant(user.companyId);
+    const c = await db.bankConnection.findFirst({
       where: { id, ...this.scope(user) },
       include: { provider: true },
     });

@@ -6,6 +6,7 @@
 - Phase plan: [docs/ROADMAP.md](docs/ROADMAP.md)
 - API docs: run the API, then open http://localhost:4100/docs
 - Webhook spec for integrators: [docs/WEBHOOK_SPEC.md](docs/WEBHOOK_SPEC.md)
+- Deploying demo / production: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - Before going live, set `BILLING_PAYMENT_INSTRUCTIONS` in `apps/api/.env` to Mysoftkh's real bank details (shown to merchants with every invoice).
 
 ## Quick start

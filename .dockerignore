@@ -1,0 +1,16 @@
+# Keep build contexts small and secret-free.
+**/node_modules
+**/.next
+**/.next-e2e
+**/dist
+**/dist-e2e
+**/e2e/.output
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.test.example
+.git
+.claude
+apps/mobile
+**/*.log
+**/.DS_Store

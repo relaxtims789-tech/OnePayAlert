@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { NextConfig } from 'next';
 
 const securityHeaders = [
@@ -13,6 +14,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
+  // Docker builds set NEXT_OUTPUT=standalone: a self-contained server.js with only the files it needs.
+  ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const, outputFileTracingRoot: join(__dirname, '../..') } : {}),
   transpilePackages: ['@onepay/ui', '@onepay/web-core'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];

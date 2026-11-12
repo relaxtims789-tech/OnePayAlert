@@ -50,6 +50,15 @@ export const envSchema = z.object({
   MQTT_PASSWORD: z.string().min(16).optional(),
   /** Shared secret EMQX sends to the auth/ACL hooks. Hooks deny everything when it is unset. */
   MQTT_HOOK_SECRET: z.string().min(24).optional(),
+  /** `json` (one JSON object per line, for log collectors) or `pretty`. Default: json in demo/production. */
+  LOG_FORMAT: z.enum(['json', 'pretty']).optional(),
+  /** Enables GET /api/v1/metrics (Prometheus), protected by `Authorization: Bearer <token>`. */
+  METRICS_TOKEN: z.string().min(24).optional(),
+  /**
+   * Reverse proxies in front of the API (0 = none). Needed for the real client IP in audit logs and
+   * rate limits: with a proxy and 0, every user would share the proxy's address and one rate limit.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
   /** How often trials, renewals and grace periods are checked. 0 disables the job (tests run it directly). */
   BILLING_JOB_INTERVAL_SECONDS: z.coerce.number().int().min(0).default(900),
   CORS_ORIGINS: z
@@ -66,7 +75,9 @@ export const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export function validateEnv(raw: Record<string, unknown>): Env {
-  const parsed = envSchema.safeParse(raw);
+  // An empty variable means "not set" (Docker Compose passes unset optional values as "").
+  const cleaned = Object.fromEntries(Object.entries(raw).filter(([, v]) => !(typeof v === 'string' && v.trim() === '')));
+  const parsed = envSchema.safeParse(cleaned);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${issues}`);

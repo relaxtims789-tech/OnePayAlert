@@ -41,6 +41,13 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...prod, MAIL_DRIVER: 'log' })).toThrow(/MAIL_DRIVER=smtp/);
   });
 
+  it('treats empty variables as unset (as Docker Compose passes them)', () => {
+    const env = validateEnv({ ...base, MQTT_URL: '', METRICS_TOKEN: '  ', FIREBASE_SERVICE_ACCOUNT_BASE64: '', CORS_ORIGINS: '' });
+    expect(env.MQTT_URL).toBeUndefined();
+    expect(env.METRICS_TOKEN).toBeUndefined();
+    expect(env.CORS_ORIGINS).toEqual([]);
+  });
+
   it('refuses to run tests against a non-test database', () => {
     expect(() => validateEnv({ ...base, APP_ENV: 'test', DATABASE_URL: 'postgresql://u:p@localhost:5433/onepay_dev' })).toThrow(/_test database/);
     expect(validateEnv({ ...base, APP_ENV: 'test', DATABASE_URL: 'postgresql://u:p@localhost:5433/onepay_test?schema=public' }).APP_ENV).toBe('test');

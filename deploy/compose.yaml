@@ -1,0 +1,191 @@
+# One PayAlert — one complete environment (demo OR production) on a single host.
+#
+#   docker compose -p onepay-prod -f deploy/compose.yaml --env-file deploy/env/production.env up -d
+#   docker compose -p onepay-demo -f deploy/compose.yaml --env-file deploy/env/demo.env up -d
+#
+# Demo and production must run on separate hosts (or at least separate projects, env files and
+# volumes): they never share a database, broker, secret or domain.
+# Soundboxes are optional: add `--profile soundbox` to start EMQX.
+#
+# Only Caddy (80/443) and, with soundboxes, EMQX's MQTT-over-TLS port are published. Everything
+# else talks on the private `backend` network.
+
+name: onepay
+
+x-api-env: &api-env
+  APP_ENV: ${APP_ENV:?APP_ENV}
+  PORT: "4100"
+  LOG_FORMAT: json
+  TRUST_PROXY: "1"
+  DATABASE_URL: postgresql://onepay_app:${DB_APP_PASSWORD:?DB_APP_PASSWORD}@postgres:5432/onepay
+  REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD}@redis:6379
+  RABBITMQ_URL: amqp://onepay:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD}@rabbitmq:5672
+  QUEUE_DRIVER: rabbitmq
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET}
+  DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?DATA_ENCRYPTION_KEY}
+  DATA_ENCRYPTION_KEY_ID: ${DATA_ENCRYPTION_KEY_ID:-k1}
+  PUBLIC_API_URL: https://${API_DOMAIN:?API_DOMAIN}
+  WEB_APP_URL: https://${APP_DOMAIN:?APP_DOMAIN}
+  CORS_ORIGINS: ""
+  MAIL_DRIVER: smtp
+  SMTP_URL: ${SMTP_URL:?SMTP_URL}
+  MAIL_FROM: ${MAIL_FROM:-One PayAlert <no-reply@onepayalert.com>}
+  FIREBASE_SERVICE_ACCOUNT_BASE64: ${FIREBASE_SERVICE_ACCOUNT_BASE64:-}
+  BILLING_PAYMENT_INSTRUCTIONS: ${BILLING_PAYMENT_INSTRUCTIONS:?BILLING_PAYMENT_INSTRUCTIONS}
+  METRICS_TOKEN: ${METRICS_TOKEN:-}
+  MQTT_URL: ${MQTT_URL:-}
+  MQTT_USERNAME: onepay-api
+  MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+  MQTT_HOOK_SECRET: ${MQTT_HOOK_SECRET:-}
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: onepay_owner
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?DB_OWNER_PASSWORD}
+      POSTGRES_DB: onepay
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ${BACKUP_DIR:-./backups}:/backups
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onepay_owner -d onepay"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: onepay
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD}
+    volumes: [rabbitdata:/var/lib/rabbitmq]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  # One-shot: migrations + reference data as the owner, then (re)creates the runtime role
+  # `onepay_app`, which row-level security applies to. Re-run on every release.
+  migrate:
+    image: ${IMAGE_PREFIX:-onepay}-migrate:${IMAGE_TAG:-latest}
+    environment:
+      APP_ENV: ${APP_ENV}
+      MIGRATION_DATABASE_URL: postgresql://onepay_owner:${DB_OWNER_PASSWORD}@postgres:5432/onepay
+      DATABASE_URL: postgresql://onepay_app:${DB_APP_PASSWORD}@postgres:5432/onepay
+    command:
+      - sh
+      - -c
+      - >-
+        DATABASE_URL=$$MIGRATION_DATABASE_URL npx prisma migrate deploy &&
+        DATABASE_URL=$$MIGRATION_DATABASE_URL SEED_SUPER_ADMIN_EMAIL= SEED_SUPER_ADMIN_PASSWORD= npx ts-node prisma/seed.ts &&
+        node prisma/app-role.mjs
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [backend]
+    restart: "no"
+
+  api:
+    image: ${IMAGE_PREFIX:-onepay}-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment: *api-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    networks: [backend]
+
+  merchant-web:
+    image: ${IMAGE_PREFIX:-onepay}-merchant-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:4100
+      REALTIME_URL: https://${API_DOMAIN}
+      SESSION_COOKIE_PREFIX: op
+    depends_on: [api]
+    networks: [backend]
+
+  admin-web:
+    image: ${IMAGE_PREFIX:-onepay}-admin-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:4100
+      REALTIME_URL: https://${API_DOMAIN}
+      SESSION_COOKIE_PREFIX: opa
+    depends_on: [api]
+    networks: [backend]
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:?ADMIN_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-0.0.0.0/0 ::/0}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on: [api, merchant-web, admin-web]
+    networks: [backend]
+
+  # Soundbox broker (optional). Devices connect with MQTT over TLS on 8883; the certificate and
+  # key for MQTT_DOMAIN go in deploy/certs/mqtt/. EMQX checks every login and topic with the API.
+  emqx:
+    image: emqx/emqx:5.8.6
+    profiles: ["soundbox"]
+    restart: unless-stopped
+    environment:
+      EMQX_NODE__NAME: onepay@127.0.0.1
+      EMQX_LISTENERS__TCP__DEFAULT__BIND: "0.0.0.0:1883"
+      EMQX_LISTENERS__SSL__DEFAULT__BIND: "0.0.0.0:8883"
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__CERTFILE: /certs/fullchain.pem
+      EMQX_LISTENERS__SSL__DEFAULT__SSL_OPTIONS__KEYFILE: /certs/privkey.pem
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:?EMQX_DASHBOARD_PASSWORD}
+      EMQX_AUTHENTICATION__1__MECHANISM: password_based
+      EMQX_AUTHENTICATION__1__BACKEND: http
+      EMQX_AUTHENTICATION__1__METHOD: post
+      EMQX_AUTHENTICATION__1__URL: http://api:4100/api/v1/mqtt/auth
+      EMQX_AUTHENTICATION__1__BODY: '{"username":"$${username}","password":"$${password}","clientid":"$${clientid}"}'
+      EMQX_AUTHENTICATION__1__HEADERS: '{"content-type":"application/json","x-onepay-hook-secret":"${MQTT_HOOK_SECRET}"}'
+      EMQX_AUTHORIZATION__NO_MATCH: deny
+      EMQX_AUTHORIZATION__SOURCES: '[{type=http,method=post,url="http://api:4100/api/v1/mqtt/acl",body={username="$${username}",clientid="$${clientid}",topic="$${topic}",action="$${action}"},headers={content-type="application/json",x-onepay-hook-secret="${MQTT_HOOK_SECRET}"}}]'
+    volumes:
+      - ./certs/mqtt:/certs:ro
+      - emqxdata:/opt/emqx/data
+    ports:
+      - "8883:8883"
+    networks: [backend]
+
+networks:
+  backend: {}
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  rabbitdata: {}
+  caddydata: {}
+  emqxdata: {}

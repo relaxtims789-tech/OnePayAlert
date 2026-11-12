@@ -22,3 +22,8 @@ apps/api/dist-e2e/
 apps/admin-web/.next-e2e/
 apps/admin-web/e2e/.output/
 apps/admin-web/next-env.d.ts
+
+# Deployment secrets, certificates and backups never go to git
+deploy/env/*.env
+deploy/certs/
+deploy/backups/

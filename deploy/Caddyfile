@@ -1,0 +1,48 @@
+# One PayAlert edge: HTTPS (automatic certificates), security headers and access rules.
+{
+	email {$ACME_EMAIL}
+}
+
+# Dashboards: scripts, styles and connections only from our own origins (+ the API for the realtime
+# socket). Next.js needs inline scripts/styles; external code and data exfiltration are blocked.
+(dashboard_csp) {
+	header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://{$API_DOMAIN} wss://{$API_DOMAIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+}
+
+(common) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Merchant dashboard
+{$APP_DOMAIN} {
+	import common
+	import dashboard_csp
+	reverse_proxy merchant-web:3000
+}
+
+# MysoftKH console: optionally limited to office/VPN addresses (ADMIN_ALLOWED_IPS).
+{$ADMIN_DOMAIN} {
+	import common
+	import dashboard_csp
+	@outside not remote_ip {$ADMIN_ALLOWED_IPS}
+	respond @outside 404
+	reverse_proxy admin-web:3000
+}
+
+# Public API (mobile app, bank webhooks, realtime socket)
+{$API_DOMAIN} {
+	import common
+	# Internal endpoints: EMQX hooks and Prometheus metrics are reachable only inside the network.
+	@internal path /api/v1/mqtt/* /api/v1/metrics
+	respond @internal 404
+	# API docs are disabled in production by the API itself.
+	reverse_proxy api:4100
+}

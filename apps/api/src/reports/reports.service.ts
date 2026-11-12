@@ -90,6 +90,7 @@ export class ReportsService {
   }
 
   async sales(user: TenantUser, q: ReportQuery & { granularity?: ReportGranularity }): Promise<SalesReportDto> {
+    const db = this.prisma.forTenant(user.companyId);
     const { from, to } = resolveReportRange(q.from, q.to);
     const granularity = q.granularity ?? 'day';
     const where = this.where(user, q, from, to);
@@ -101,17 +102,17 @@ export class ReportsService {
         outletId: q.outletId,
         includeSimulated: q.includeSimulated,
       }),
-      this.prisma.$queryRaw<{ period: string; currency: Currency; count: number; amount: bigint }[]>`
+      db.$queryRaw<{ period: string; currency: Currency; count: number; amount: bigint }[]>`
         SELECT to_char(date_trunc(${granularity}, t.occurred_at AT TIME ZONE ${BUSINESS_TIMEZONE})::date, 'YYYY-MM-DD') AS period,
                t.currency::text AS currency, COUNT(*)::int AS count, COALESCE(SUM(t.amount_minor), 0)::bigint AS amount
         FROM transactions t ${where}
         GROUP BY 1, 2 ORDER BY 1, 2`,
-      this.prisma.$queryRaw<{ key: string; label: string; currency: Currency; count: number; amount: bigint }[]>`
+      db.$queryRaw<{ key: string; label: string; currency: Currency; count: number; amount: bigint }[]>`
         SELECT COALESCE(o.id::text, '') AS key, COALESCE(o.name, '') AS label,
                t.currency::text AS currency, COUNT(*)::int AS count, COALESCE(SUM(t.amount_minor), 0)::bigint AS amount
         FROM transactions t LEFT JOIN outlets o ON o.id = t.outlet_id ${where}
         GROUP BY 1, 2, 3 ORDER BY 5 DESC, 2`,
-      this.prisma.$queryRaw<{ key: string; label: string; currency: Currency; count: number; amount: bigint }[]>`
+      db.$queryRaw<{ key: string; label: string; currency: Currency; count: number; amount: bigint }[]>`
         SELECT p.code AS key, p.name AS label,
                t.currency::text AS currency, COUNT(*)::int AS count, COALESCE(SUM(t.amount_minor), 0)::bigint AS amount
         FROM transactions t
@@ -151,6 +152,7 @@ export class ReportsService {
    * large export never sits in memory at once.
    */
   async *transactionsCsv(user: TenantUser, q: ReportQuery & { status?: string }): AsyncGenerator<string> {
+    const db = this.prisma.forTenant(user.companyId);
     const { from, to } = resolveReportRange(q.from, q.to);
     const restricted = q.outletId !== undefined && user.outletIds.length > 0 && !user.outletIds.includes(q.outletId);
     const where: Prisma.TransactionWhereInput = {
@@ -166,14 +168,14 @@ export class ReportsService {
       ...(q.status ? { status: q.status as Prisma.EnumTransactionStatusFilter['equals'] } : {}),
       ...(q.includeSimulated === false ? { isSimulated: false } : {}),
     };
-    const total = await this.prisma.transaction.count({ where });
+    const total = await db.transaction.count({ where });
     if (total > MAX_EXPORT_ROWS) throw apiError(HttpStatus.BAD_REQUEST, 'REPORT_TOO_LARGE', { max: MAX_EXPORT_ROWS });
 
     // UTF-8 BOM so Excel shows Khmer and Chinese names correctly.
     yield `﻿${CSV_HEADER.join(',')}\r\n`;
     let cursor: string | undefined;
     for (;;) {
-      const batch = await this.prisma.transaction.findMany({
+      const batch = await db.transaction.findMany({
         where,
         include: {
           outlet: { select: { name: true } },

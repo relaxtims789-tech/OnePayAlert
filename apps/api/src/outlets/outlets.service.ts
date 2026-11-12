@@ -37,6 +37,7 @@ export class OutletsService {
   }
 
   async list(user: TenantUser, q: ListOutletsQueryDto): Promise<Paginated<OutletDto>> {
+    const db = this.prisma.forTenant(user.companyId);
     const where: Prisma.OutletWhereInput = {
       ...this.scope(user),
       ...(q.isActive !== undefined ? { isActive: q.isActive } : {}),
@@ -49,14 +50,14 @@ export class OutletsService {
           }
         : {}),
     };
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.outlet.findMany({
+    const [items, total] = await Promise.all([
+      db.outlet.findMany({
         where,
         orderBy: { createdAt: 'asc' },
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
       }),
-      this.prisma.outlet.count({ where }),
+      db.outlet.count({ where }),
     ]);
     return { items: items.map(toOutletDto), total, page: q.page, pageSize: q.pageSize };
   }
@@ -117,7 +118,8 @@ export class OutletsService {
 
   /** Throws 404 (never 403) for outlets of other tenants so ids cannot be probed. */
   private async findOwned(user: TenantUser, id: string): Promise<Outlet> {
-    const outlet = await this.prisma.outlet.findFirst({ where: { id, ...this.scope(user) } });
+    const db = this.prisma.forTenant(user.companyId);
+    const outlet = await db.outlet.findFirst({ where: { id, ...this.scope(user) } });
     if (!outlet) throw new NotFoundException('Outlet not found');
     return outlet;
   }

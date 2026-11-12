@@ -54,6 +54,7 @@ export class EmployeesService {
   ) {}
 
   async list(user: TenantUser, q: PaginationQueryDto): Promise<Paginated<EmployeeDto>> {
+    const db = this.prisma.forTenant(user.companyId);
     const where: Prisma.MembershipWhereInput = {
       companyId: user.companyId,
       ...(q.search
@@ -67,15 +68,15 @@ export class EmployeesService {
           }
         : {}),
     };
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.membership.findMany({
+    const [items, total] = await Promise.all([
+      db.membership.findMany({
         where,
         include: employeeInclude,
         orderBy: { createdAt: 'asc' },
         skip: (q.page - 1) * q.pageSize,
         take: q.pageSize,
       }),
-      this.prisma.membership.count({ where }),
+      db.membership.count({ where }),
     ]);
     return { items: items.map(toEmployeeDto), total, page: q.page, pageSize: q.pageSize };
   }
@@ -221,7 +222,8 @@ export class EmployeesService {
   }
 
   private async findOwned(user: TenantUser, membershipId: string): Promise<MembershipWithUser> {
-    const m = await this.prisma.membership.findFirst({
+    const db = this.prisma.forTenant(user.companyId);
+    const m = await db.membership.findFirst({
       where: { id: membershipId, companyId: user.companyId },
       include: employeeInclude,
     });

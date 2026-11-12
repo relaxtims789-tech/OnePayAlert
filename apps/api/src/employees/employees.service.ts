@@ -17,6 +17,7 @@ import { PasswordService } from '../auth/password.service';
 import { PrincipalService } from '../auth/principal.service';
 import type { TenantUser } from '../common/auth-user';
 import type { PaginationQueryDto } from '../common/pagination.dto';
+import { EntitlementsService } from '../billing/entitlements.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateEmployeeDto, UpdateEmployeeDto } from './employees.dto';
 
@@ -49,6 +50,7 @@ export class EmployeesService {
     private readonly passwords: PasswordService,
     private readonly audit: AuditService,
     private readonly principals: PrincipalService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   async list(user: TenantUser, q: PaginationQueryDto): Promise<Paginated<EmployeeDto>> {
@@ -96,6 +98,7 @@ export class EmployeesService {
     const passwordHash = existingUser ? null : await this.passwords.hash(dto.initialPassword);
 
     const membership = await this.prisma.$transaction(async (tx) => {
+      await this.entitlements.assertCanAdd(tx, user.companyId, 'employees');
       const employeeUser =
         existingUser ??
         (await tx.user.create({
@@ -151,6 +154,12 @@ export class EmployeesService {
       dto.outletIds !== undefined ? await this.validateOutlets(user.companyId, dto.outletIds) : null;
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      const reactivating = dto.isActive === true && !target.isActive;
+      // Owners do not count toward the limit; demoting one to staff takes a slot.
+      const leavingOwner = target.role === 'OWNER' && dto.role !== undefined;
+      if ((reactivating && target.role !== 'OWNER') || leavingOwner) {
+        await this.entitlements.assertCanAdd(tx, user.companyId, 'employees');
+      }
       if (outletIds !== null) {
         await tx.membershipOutlet.deleteMany({ where: { membershipId } });
         if (outletIds.length > 0) {

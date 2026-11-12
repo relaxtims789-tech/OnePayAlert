@@ -1,17 +1,20 @@
 'use client';
 
-import { Permission, type Locale } from '@onepay/shared';
+import { Permission, type BillingOverviewDto, type Locale } from '@onepay/shared';
 import { Badge, Button, ErrorState, Logo, Spinner, cn } from '@onepay/ui';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeftRight,
+  BarChart3,
   Building2,
   ChevronDown,
+  CreditCard,
   Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
   Settings,
+  Speaker,
   Store,
   Users,
   X,
@@ -31,6 +34,9 @@ const NAV: { href: string; label: MessageKey; icon: typeof LayoutDashboard; perm
   { href: '/bank-connections', label: 'nav.bankConnections', icon: Landmark, perm: Permission.BANK_CONNECTION_READ },
   { href: '/outlets', label: 'nav.outlets', icon: Store, perm: Permission.OUTLET_READ },
   { href: '/employees', label: 'nav.employees', icon: Users, perm: Permission.EMPLOYEE_READ },
+  { href: '/devices', label: 'nav.devices', icon: Speaker, perm: Permission.DEVICE_READ },
+  { href: '/reports', label: 'nav.reports', icon: BarChart3, perm: Permission.REPORT_READ },
+  { href: '/billing', label: 'nav.billing', icon: CreditCard, perm: Permission.SUBSCRIPTION_READ },
   { href: '/settings', label: 'nav.settings', icon: Settings },
 ];
 
@@ -43,6 +49,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const can = useCan();
   const toastError = useErrorToast();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const billing = useQuery({
+    queryKey: ['billing'],
+    queryFn: () => api.get<BillingOverviewDto>('billing'),
+    enabled: can(Permission.SUBSCRIPTION_READ),
+    staleTime: 5 * 60_000,
+  });
   const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
@@ -201,10 +213,36 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="mb-4 sm:hidden">
               <LanguageSwitcher onChange={(l) => void changeLanguage(l)} />
             </div>
+            <SubscriptionBanner overview={billing.data} onBillingPage={pathname === '/billing'} />
             {children}
           </main>
         </div>
       </div>
     </RealtimeProvider>
+  );
+}
+
+/** Tells people who look after billing when the plan needs attention. Hidden on the billing page. */
+function SubscriptionBanner({ overview, onBillingPage }: { overview: BillingOverviewDto | undefined; onBillingPage: boolean }) {
+  const { t } = useI18n();
+  const sub = overview?.subscription;
+  if (!sub || onBillingPage) return null;
+  const trialDays = sub.status === 'TRIALING' && sub.trialEndsAt ? Math.ceil((new Date(sub.trialEndsAt).getTime() - Date.now()) / 86_400_000) : null;
+  const message =
+    sub.status === 'PAST_DUE'
+      ? { tone: 'bg-pending-50 text-orange-800 border-orange-200', text: t('billingStatus.PAST_DUE') }
+      : sub.status === 'EXPIRED' || sub.status === 'CANCELED'
+        ? { tone: 'bg-failed-50 text-failed border-red-200', text: t('billing.ended') }
+        : trialDays !== null && trialDays <= 3
+          ? { tone: 'bg-brand-50 text-brand border-brand-100', text: t('billing.trialEndsIn', { days: Math.max(trialDays, 0) }) }
+          : null;
+  if (!message) return null;
+  return (
+    <div className={cn('mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm', message.tone)} role="status" data-testid="subscription-banner">
+      <span>{message.text}</span>
+      <Link href="/billing" className="font-semibold underline-offset-2 hover:underline">
+        {t('billing.viewBilling')} →
+      </Link>
+    </div>
   );
 }

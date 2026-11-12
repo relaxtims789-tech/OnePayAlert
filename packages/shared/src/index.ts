@@ -5,3 +5,7 @@ export * from './api-types';
 export * from './payments';
 export * from './notifications';
 export * from './platform';
+export * from './billing';
+export * from './reports';
+export * from './errors';
+export * from './devices';

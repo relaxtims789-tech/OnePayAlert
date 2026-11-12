@@ -17,6 +17,7 @@ import type { TenantUser } from '../common/auth-user';
 import type { PaginationQueryDto } from '../common/pagination.dto';
 import { AppConfig } from '../config/app-config.service';
 import { CryptoService } from '../infra/crypto.service';
+import { EntitlementsService } from '../billing/entitlements.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   adapterFor,
@@ -55,6 +56,7 @@ export class BankConnectionsService {
     private readonly config: AppConfig,
     private readonly audit: AuditService,
     private readonly ingestion: IngestionService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   webhookUrl(c: ConnectionWithProvider): string | null {
@@ -149,6 +151,7 @@ export class BankConnectionsService {
       : `Live integration with ${provider.name} is not available yet. The connection will activate once it is.`;
 
     const created = await this.prisma.$transaction(async (tx) => {
+      await this.entitlements.assertCanAdd(tx, user.companyId, 'bankConnections');
       const c = await tx.bankConnection.create({
         data: {
           id,

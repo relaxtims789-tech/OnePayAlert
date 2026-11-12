@@ -1,6 +1,6 @@
 'use client';
 
-import { paymentAlertMessage, RealtimeEvent, type Locale, type TransactionDto } from '@onepay/shared';
+import { paymentAlertMessage, RealtimeEvent, type DeviceDto, type Locale, type TransactionDto } from '@onepay/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { io, type Socket } from 'socket.io-client';
@@ -131,6 +131,10 @@ export function RealtimeProvider({ companyId, children }: { companyId: string | 
       };
       socket.on(RealtimeEvent.TRANSACTION_CREATED, handle('created'));
       socket.on(RealtimeEvent.TRANSACTION_UPDATED, handle('updated'));
+      // Soundbox online/offline and telemetry: patch the device list in place.
+      socket.on(RealtimeEvent.DEVICE_UPDATED, (d: DeviceDto) => {
+        qc.setQueryData<DeviceDto[]>(['devices'], (list) => list?.map((x) => (x.id === d.id ? d : x)));
+      });
     })();
 
     return () => {

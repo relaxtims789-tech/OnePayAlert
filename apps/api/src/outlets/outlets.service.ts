@@ -3,6 +3,7 @@ import type { OutletDto, Paginated } from '@onepay/shared';
 import { Prisma, type Outlet } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import type { TenantUser } from '../common/auth-user';
+import { EntitlementsService } from '../billing/entitlements.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateOutletDto, ListOutletsQueryDto, UpdateOutletDto } from './outlets.dto';
 
@@ -24,6 +25,7 @@ export class OutletsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   /** Tenant scope + per-member outlet restriction. Every read goes through this. */
@@ -65,6 +67,7 @@ export class OutletsService {
 
   async create(user: TenantUser, dto: CreateOutletDto, ip: string | null): Promise<OutletDto> {
     const outlet = await this.prisma.$transaction(async (tx) => {
+      await this.entitlements.assertCanAdd(tx, user.companyId, 'outlets');
       const created = await tx.outlet.create({ data: { ...dto, companyId: user.companyId } });
       await this.audit.log(
         {
@@ -89,8 +92,11 @@ export class OutletsService {
     dto: UpdateOutletDto,
     ip: string | null,
   ): Promise<OutletDto> {
-    await this.findOwned(user, id);
+    const existing = await this.findOwned(user, id);
     const outlet = await this.prisma.$transaction(async (tx) => {
+      if (dto.isActive === true && !existing.isActive) {
+        await this.entitlements.assertCanAdd(tx, user.companyId, 'outlets');
+      }
       const updated = await tx.outlet.update({ where: { id }, data: dto });
       await this.audit.log(
         {

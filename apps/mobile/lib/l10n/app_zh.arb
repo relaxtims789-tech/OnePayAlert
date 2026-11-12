@@ -32,6 +32,7 @@
   "last7": "7 天",
   "last30": "30 天",
   "allStatuses": "全部",
+  "allOutlets": "全部门店",
   "statusSuccess": "成功",
   "statusPending": "处理中",
   "statusFailed": "失败",

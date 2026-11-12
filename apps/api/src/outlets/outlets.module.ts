@@ -4,6 +4,7 @@ import { Permission, type OutletDto, type Paginated } from '@onepay/shared';
 import type { TenantUser } from '../common/auth-user';
 import { ClientIp, CurrentTenant, RequirePermissions } from '../common/decorators';
 import { CreateOutletDto, ListOutletsQueryDto, UpdateOutletDto } from './outlets.dto';
+import { BillingModule } from '../billing/billing.module';
 import { OutletsService } from './outlets.service';
 
 @ApiTags('Outlets')
@@ -50,6 +51,7 @@ export class OutletsController {
 }
 
 @Module({
+  imports: [BillingModule],
   controllers: [OutletsController],
   providers: [OutletsService],
   exports: [OutletsService],

@@ -18,6 +18,17 @@ class ApiException implements Exception {
   String toString() => 'ApiException($status, $message)';
 }
 
+/// Connection settings for the API. The trailing slash matters: Dio joins base URL and path
+/// as plain text, so without it `auth/login` would become `/api/v1auth/login`.
+BaseOptions apiBaseOptions({String baseUrl = AppConfig.apiBaseUrl}) => BaseOptions(
+      baseUrl: '$baseUrl/api/v1/',
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 20),
+      contentType: Headers.jsonContentType,
+      // Status handling is ours, not Dio's.
+      validateStatus: (_) => true,
+    );
+
 /// REST client for the One PayAlert API.
 ///
 /// - Access token in memory, refresh token in the platform keystore.
@@ -26,19 +37,14 @@ class ApiException implements Exception {
 /// - If the session cannot be renewed, [sessionExpired] fires and tokens are cleared.
 class ApiClient {
   ApiClient(this._tokens, {Dio? dio})
-      : _dio = dio ??
-            Dio(BaseOptions(
-              baseUrl: '${AppConfig.apiBaseUrl}/api/v1',
-              connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 20),
-              contentType: Headers.jsonContentType,
-              // Status handling is ours, not Dio's.
-              validateStatus: (_) => true,
-            ));
+      : _dio = dio ?? Dio(apiBaseOptions());
 
   final TokenStore _tokens;
   final Dio _dio;
   String? _accessToken;
+
+  /// App language (km/en/zh); the API translates its error messages into it.
+  String language = 'km';
   Future<bool>? _refreshing;
   final _expired = StreamController<void>.broadcast();
 
@@ -61,7 +67,7 @@ class ApiClient {
         path,
         data: data,
         queryParameters: query,
-        options: Options(method: method, headers: {if (token != null) 'Authorization': 'Bearer $token'}),
+        options: Options(method: method, headers: {'Accept-Language': language, if (token != null) 'Authorization': 'Bearer $token'}),
       );
     } on DioException catch (e) {
       throw ApiException(0, e.message ?? 'NETWORK');

@@ -37,6 +37,21 @@ export const envSchema = z.object({
   MAIL_FROM: z.string().default('One PayAlert <no-reply@onepayalert.local>'),
   /** Optional: Firebase service account JSON, base64 encoded. Push is disabled when absent. */
   FIREBASE_SERVICE_ACCOUNT_BASE64: z.string().optional(),
+  /** Shown to merchants with every open invoice: how to pay MysoftKH (bank account, KHQR...). */
+  BILLING_PAYMENT_INSTRUCTIONS: z
+    .string()
+    .default('Pay by bank transfer to Mysoftkh and quote the invoice number. Our team confirms payments within one business day.'),
+  /**
+   * Soundbox broker (EMQX). Without MQTT_URL, devices can still be registered and claimed but no
+   * announcements are sent. The API connects as MQTT_USERNAME (a superuser in the auth hook).
+   */
+  MQTT_URL: z.string().url().optional(),
+  MQTT_USERNAME: z.string().min(3).default('onepay-api'),
+  MQTT_PASSWORD: z.string().min(16).optional(),
+  /** Shared secret EMQX sends to the auth/ACL hooks. Hooks deny everything when it is unset. */
+  MQTT_HOOK_SECRET: z.string().min(24).optional(),
+  /** How often trials, renewals and grace periods are checked. 0 disables the job (tests run it directly). */
+  BILLING_JOB_INTERVAL_SECONDS: z.coerce.number().int().min(0).default(900),
   CORS_ORIGINS: z
     .string()
     .default('')
@@ -69,6 +84,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   }
   if (env.APP_ENV === 'test' && !/\/[a-z0-9_]*_test(\?|$)/.test(env.DATABASE_URL)) {
     throw new Error('APP_ENV=test must use a *_test database (refusing to touch dev/demo/production data)');
+  }
+  if (env.MQTT_URL && (!env.MQTT_PASSWORD || !env.MQTT_HOOK_SECRET)) {
+    throw new Error('MQTT_URL requires MQTT_PASSWORD and MQTT_HOOK_SECRET');
   }
   if (env.APP_ENV === 'production' && env.QUEUE_DRIVER !== 'rabbitmq') {
     throw new Error('Production must use QUEUE_DRIVER=rabbitmq');

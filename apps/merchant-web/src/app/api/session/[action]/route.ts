@@ -2,4 +2,4 @@ import { createSessionHandlers } from '@onepay/web-core/server';
 
 export const dynamic = 'force-dynamic';
 
-export const { GET, POST } = createSessionHandlers({ allowRegister: true });
+export const { GET, POST } = createSessionHandlers({ allowRegister: true, defaultLocale: 'km' });

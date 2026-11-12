@@ -1,5 +1,5 @@
 import 'server-only';
-import type { AuthTokens, MeResponse } from '@onepay/shared';
+import type { AuthTokens, Locale, MeResponse } from '@onepay/shared';
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   backendFetch,
@@ -11,6 +11,17 @@ import {
   refreshSession,
   setSessionCookies,
 } from './session';
+import { LOCALE_COOKIE, LOCALE_TAGS, isLocale } from '../i18n/locale';
+
+/**
+ * The language the API should answer in: the dashboard's UI language — the cookie, or the app's
+ * default when none was saved yet — so API error messages match the screen they appear on.
+ */
+function acceptLanguage(req: NextRequest, defaultLocale: Locale): string {
+  const saved = req.cookies.get(LOCALE_COOKIE)?.value;
+  const ui = isLocale(saved) ? saved : defaultLocale;
+  return `${LOCALE_TAGS[ui]},${ui};q=0.9`;
+}
 
 const json = (status: number, body: unknown) =>
   NextResponse.json(body, { status, headers: { 'cache-control': 'no-store' } });
@@ -20,6 +31,8 @@ export interface ProxyOptions {
   allow?: RegExp[];
   /** Always unreachable, checked before `allow`. */
   block?: RegExp[];
+  /** UI language when the user has not picked one (must match the app's root layout). */
+  defaultLocale?: Locale;
 }
 
 /** Endpoints that mint or revoke tokens are never reachable from browser JavaScript. */
@@ -50,7 +63,7 @@ export function createProxyHandler(opts: ProxyOptions = {}) {
           body: body || undefined,
           headers: {
             'Content-Type': req.headers.get('content-type') ?? 'application/json',
-            'Accept-Language': req.headers.get('accept-language') ?? '',
+            'Accept-Language': acceptLanguage(req, opts.defaultLocale ?? 'en'),
           },
         },
         token,
@@ -88,8 +101,10 @@ export function createProxyHandler(opts: ProxyOptions = {}) {
     }
 
     const headers = new Headers({ 'cache-control': 'no-store' });
-    const ct = res.headers.get('content-type');
-    if (ct) headers.set('content-type', ct);
+    for (const h of ['content-type', 'content-disposition']) {
+      const v = res.headers.get(h);
+      if (v) headers.set(h, v);
+    }
     return new NextResponse(res.status === 204 ? null : res.body, { status: res.status, headers });
   };
 }
@@ -99,6 +114,8 @@ export interface SessionOptions {
   allowRegister?: boolean;
   /** Only users with a MysoftKH platform role may sign in (Super Admin dashboard). */
   requirePlatformRole?: boolean;
+  /** UI language when the user has not picked one (must match the app's root layout). */
+  defaultLocale?: Locale;
 }
 
 /**
@@ -106,10 +123,10 @@ export interface SessionOptions {
  * Tokens are stored in httpOnly cookies; only `{ ok: true }` is returned to the browser.
  */
 export function createSessionHandlers(opts: SessionOptions = {}) {
-  async function mint(path: string, body: string, accessToken?: string | null) {
+  async function mint(path: string, body: string, lang: string, accessToken?: string | null) {
     let res: Response;
     try {
-      res = await backendFetch(path, { method: 'POST', body }, accessToken);
+      res = await backendFetch(path, { method: 'POST', body, headers: { 'Accept-Language': lang } }, accessToken);
     } catch {
       return json(503, { statusCode: 503, message: 'API unavailable' });
     }
@@ -139,15 +156,15 @@ export function createSessionHandlers(opts: SessionOptions = {}) {
     const body = await req.text();
     switch (action) {
       case 'login':
-        return mint('auth/login', body);
+        return mint('auth/login', body, acceptLanguage(req, opts.defaultLocale ?? 'en'));
       case 'register':
         if (!opts.allowRegister) break;
-        return mint('auth/register', body);
+        return mint('auth/register', body, acceptLanguage(req, opts.defaultLocale ?? 'en'));
       case 'switch-company': {
         if (opts.requirePlatformRole) break;
         const token = await ensureAccessToken();
         if (!token) return json(401, { statusCode: 401, code: 'SESSION_EXPIRED', message: 'Session expired' });
-        return mint('auth/switch-company', body, token);
+        return mint('auth/switch-company', body, acceptLanguage(req, opts.defaultLocale ?? 'en'), token);
       }
       case 'logout': {
         const { refreshToken } = await readSession();

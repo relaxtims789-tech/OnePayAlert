@@ -39,6 +39,13 @@ ApiClient client(FakeAdapter adapter, MemoryTokenStore store) {
 }
 
 void main() {
+  test('API paths resolve under /api/v1/ (no missing slash)', () {
+    final base = apiBaseOptions(baseUrl: 'http://10.0.2.2:4100');
+    String url(String path) => RequestOptions(path: path).copyWith(baseUrl: base.baseUrl).uri.toString();
+    expect(url('auth/login'), 'http://10.0.2.2:4100/api/v1/auth/login');
+    expect(url('transactions/summary'), 'http://10.0.2.2:4100/api/v1/transactions/summary');
+  });
+
   test('login stores the refresh token and keeps the access token in memory', () async {
     final store = MemoryTokenStore();
     final api = client(FakeAdapter((o) async => json(200, tokens('1'))), store);

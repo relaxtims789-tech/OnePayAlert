@@ -1,4 +1,5 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
+import { API_URL, BILLING_STAFF } from './fixtures';
 
 /**
  * One merchant's journey through the real stack. Tests run in order and share the owner
@@ -54,6 +55,56 @@ test('rejects bad credentials and does not reveal accounts on password reset', a
   await page.getByLabel('Email').fill(`nobody.${stamp}@e2e.onepay.local`);
   await page.getByRole('button', { name: 'Send reset link' }).click();
   await expect(page.getByText(/If an account exists for this email/)).toBeVisible();
+});
+
+/** What MysoftKH staff do in the admin console once the transfer arrives — through the real API. */
+async function confirmPayment(request: APIRequestContext, invoiceNumber: string) {
+  const login = await request.post(`${API_URL}/auth/login`, { data: { email: BILLING_STAFF.email, password: BILLING_STAFF.password } });
+  expect(login.ok()).toBeTruthy();
+  const auth = { Authorization: `Bearer ${(await login.json()).accessToken}` };
+  const open = await (await request.get(`${API_URL}/platform/invoices?status=OPEN&pageSize=100`, { headers: auth })).json();
+  const invoice = open.items.find((i: { number: string }) => i.number === invoiceNumber);
+  expect(invoice).toBeTruthy();
+  const paid = await request.post(`${API_URL}/platform/invoices/${invoice.id}/mark-paid`, {
+    headers: auth,
+    data: { paymentMethod: 'BANK_TRANSFER', paymentReference: 'E2E-TRANSFER' },
+  });
+  expect(paid.ok()).toBeTruthy();
+}
+
+test('explains the trial plan limit; a confirmed Business invoice lifts it', async ({ page, request }) => {
+  await signIn(page, owner.email, owner.password);
+  await page.getByRole('link', { name: 'Outlets' }).click();
+  await page.getByRole('button', { name: 'Add outlet' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Name').fill('Riverside');
+  await dialog.getByLabel('Code').fill('river');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('Your Starter plan allows up to 1 active outlets');
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByRole('link', { name: 'Plan & billing' }).click();
+  await expect(page.getByTestId('current-plan')).toContainText('Starter');
+  await expect(page.getByTestId('current-plan')).toContainText('Free trial');
+  await expect(page.getByTestId('usage')).toContainText('1 of 1');
+  await page.getByTestId('choose-BUSINESS').click();
+  await expect(page.getByRole('dialog')).toContainText('$29.00');
+  await page.getByTestId('confirm-checkout').click();
+
+  const invoiceCard = page.getByTestId('open-invoice');
+  await expect(invoiceCard).toContainText('$29.00');
+  await expect(invoiceCard).toContainText('How to pay');
+  const invoiceNumber = (/INV-\d{4}-\d{6}/.exec((await invoiceCard.textContent()) ?? '') ?? [''])[0];
+  expect(invoiceNumber).not.toBe('');
+  // Choosing a plan alone unlocks nothing.
+  await expect(page.getByTestId('current-plan')).toContainText('Starter');
+
+  await confirmPayment(request, invoiceNumber);
+  await page.reload();
+  await expect(page.getByTestId('current-plan')).toContainText('Business');
+  await expect(page.getByTestId('current-plan')).toContainText('Active');
+  await expect(page.getByTestId('invoices')).toContainText('Paid');
+  await expect(page.getByTestId('usage')).toContainText('1 of 5');
 });
 
 test('creates an outlet', async ({ page }) => {
@@ -131,6 +182,66 @@ test('filters transactions and shows details', async ({ page }) => {
   await page.getByLabel('Status').selectOption('');
   await page.getByRole('searchbox').fill('no-such-payer-xyz');
   await expect(page.getByText('No transactions found')).toBeVisible();
+});
+
+test('reports totals and downloads CSV and PDF exports', async ({ page }) => {
+  await signIn(page, owner.email, owner.password);
+  await page.getByRole('link', { name: 'Reports' }).click();
+  await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible();
+  await expect(page.getByTestId('report-totals')).toContainText('$12.50');
+  await expect(page.getByTestId('by-provider')).toContainText('$12.50');
+
+  const csv = page.waitForEvent('download');
+  await page.getByTestId('export-csv').click();
+  expect((await csv).suggestedFilename()).toMatch(/^payments_\d{4}-\d{2}-\d{2}\.csv$/);
+
+  const pdf = page.waitForEvent('download');
+  await page.getByTestId('export-pdf').click();
+  expect((await pdf).suggestedFilename()).toMatch(/^sales-report_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.pdf$/);
+
+  // An impossible custom range is caught before asking the server.
+  await page.getByRole('tab', { name: 'Custom' }).click();
+  await page.getByTestId('report-from').fill('2026-03-10');
+  await page.getByTestId('report-to').fill('2026-03-01');
+  await expect(page.getByText('The start date must be on or before the end date.')).toBeVisible();
+  await expect(page.getByTestId('export-pdf')).toBeDisabled();
+});
+
+test('adds a soundbox with the code from its box and changes its settings', async ({ page, request }) => {
+  // MysoftKH registers the device before it ships (through the real API).
+  const login = await request.post(`${API_URL}/auth/login`, { data: { email: BILLING_STAFF.email, password: BILLING_STAFF.password } });
+  const auth = { Authorization: `Bearer ${(await login.json()).accessToken}` };
+  const serial = `SBX-E2E${String(stamp).slice(-6)}`;
+  const reg = await request.post(`${API_URL}/platform/devices`, { headers: auth, data: { serialNumber: serial, model: 'OPA-SB1' } });
+  expect(reg.status()).toBe(201);
+  const { claimCode } = await reg.json();
+
+  await signIn(page, owner.email, owner.password);
+  await page.getByRole('link', { name: 'Soundboxes' }).click();
+  await expect(page.getByText('No soundbox yet')).toBeVisible();
+  await page.getByTestId('add-device').click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Serial number').fill(serial);
+  await dialog.getByLabel('Claim code').fill('ZZZZ-ZZZZ');
+  await dialog.getByRole('button', { name: 'Add soundbox' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('do not match a device that can be added');
+  await dialog.getByLabel('Claim code').fill(claimCode);
+  await dialog.getByLabel('Name (optional)').fill('Front counter');
+  await dialog.getByLabel('Announces payments of').selectOption({ label: 'Riverside' });
+  await dialog.getByRole('button', { name: 'Add soundbox' }).click();
+  await expect(page.getByText('Soundbox added')).toBeVisible();
+
+  const card = page.getByTestId('device-card').filter({ hasText: 'Front counter' });
+  await expect(card).toContainText(serial);
+  await expect(card).toContainText('Riverside');
+  await expect(card).toContainText('Offline');
+  await expect(card).toContainText('Not connected yet');
+
+  await card.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('dialog').getByLabel('Announcement language').selectOption('en');
+  await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Soundbox updated')).toBeVisible();
+  await expect(card).toContainText('English');
 });
 
 test('connecting a signed-webhook gateway shows the secret exactly once', async ({ page }) => {

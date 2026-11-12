@@ -35,7 +35,7 @@ export function useCanManage() {
 
 export function errorText(err: unknown, t: ReturnType<typeof useI18n>['t']): string {
   if (!(err instanceof ApiError) || err.status === 0) return t('common.networkError');
-  if (err.status === 403) return t('common.forbidden');
+  if (err.status === 403 && (!err.code || err.code === 'FORBIDDEN')) return t('common.forbidden');
   if (err.status === 404) return t('common.notFound');
   return err.message;
 }

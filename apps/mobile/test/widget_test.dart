@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:onepay_mobile/data/models.dart';
 import 'package:onepay_mobile/l10n/app_localizations.dart';
@@ -81,8 +82,9 @@ void main() {
   });
 
   testWidgets('pending payments are labelled, not shown as received', (tester) async {
-    await tester.pumpWidget(wrap(Scaffold(body: TxnTile(txn(status: 'PENDING'), locale: 'zh'))));
+    await tester.pumpWidget(wrap(Scaffold(body: TxnTile(txn(status: 'PENDING'), locale: 'zh')), locale: 'zh'));
     expect(find.text('处理中'), findsOneWidget);
-    expect(find.text('Demo'), findsNothing);
+    expect(find.text('演示'), findsNothing);
+    expect(find.textContaining('+'), findsNothing); // not shown as money received
   });
 }

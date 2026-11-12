@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
  */
 const handle = createProxyHandler({
   allow: [/^platform\//, /^auth\/(me|change-password)$/],
+  defaultLocale: 'en',
 });
 
 export { handle as GET, handle as POST, handle as PATCH, handle as PUT, handle as DELETE };

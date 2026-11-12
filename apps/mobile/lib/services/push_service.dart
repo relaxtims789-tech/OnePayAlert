@@ -39,10 +39,16 @@ class PushService {
       await _init();
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();
+      // firebase_messaging 17 deprecates getToken/onTokenRefresh in favour of register()/onRegistered,
+      // but those return a Firebase Installation ID for the newer "direct-send" API, which the
+      // backend's firebase-admin multicast (FCM registration tokens) does not use. Migrate the app
+      // and the API together; until then the registration-token API is the correct one.
+      // ignore: deprecated_member_use
       final token = await messaging.getToken();
       if (token == null) return;
       _token = token;
       await _repo.registerPushToken(token, Platform.isIOS ? 'IOS' : 'ANDROID');
+      // ignore: deprecated_member_use
       messaging.onTokenRefresh.listen((t) {
         _token = t;
         _repo.registerPushToken(t, Platform.isIOS ? 'IOS' : 'ANDROID');

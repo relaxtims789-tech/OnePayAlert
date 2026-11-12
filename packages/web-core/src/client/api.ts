@@ -64,6 +64,40 @@ export const api = {
   del: <T>(path: string, body?: unknown) => request<T>(`/api/proxy/${path}`, { method: 'DELETE', body: enc(body) }),
 };
 
+/**
+ * Downloads a file (CSV, PDF...) from the API through the proxy and hands it to the browser.
+ * API errors arrive as JSON and are thrown as ApiError, like any other call.
+ */
+export async function download(
+  path: string,
+  params: Record<string, string | number | boolean | undefined | null>,
+  fallbackName: string,
+): Promise<void> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+  let res: Response;
+  try {
+    res = await fetch(`/api/proxy/${path}?${qs.toString()}`, { credentials: 'same-origin', cache: 'no-store' });
+  } catch {
+    throw new ApiError(0, 'NETWORK');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const code = body && typeof body === 'object' && 'code' in body ? String((body as { code: unknown }).code) : undefined;
+    if (res.status === 401 && code === 'SESSION_EXPIRED') onSessionExpired?.();
+    throw new ApiError(res.status, errorMessage(body, res.statusText || 'Download failed'), code);
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 export const session = {
   login: (body: { email: string; password: string; companyId?: string }) =>
     request<{ ok: true }>('/api/session/login', { method: 'POST', body: enc(body) }),

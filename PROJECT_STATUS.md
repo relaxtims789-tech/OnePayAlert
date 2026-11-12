@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-11 — end of Phase 4_
+_Last updated: 2026-11-12 — end of Phase 7_
 
 ## Phase overview
 
@@ -13,14 +13,165 @@ _Last updated: 2026-11-11 — end of Phase 4_
 | 2 | Bank/gateway connections + transaction ingestion (webhooks, idempotency, RabbitMQ, Redis, WebSocket, FCM) | ✅ **Done** |
 | 3 | Merchant web dashboard (Next.js) | ✅ **Done** |
 | 4 | MysoftKH Super Admin dashboard (Next.js) | ✅ **Done** |
-| 5 | Flutter mobile app (Android/iOS) | ⏳ Next (needs Flutter SDK installed) |
-| 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | Not started |
-| 7 | Soundbox devices over EMQX MQTT | Not started |
-| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | Not started |
+| 5 | Flutter mobile app (Android/iOS) | ✅ **Done** (Android verified; iOS not yet built) |
+| 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | ✅ **Done** |
+| 7 | Soundbox devices over EMQX MQTT | ✅ **Done** (verified with the simulator; no physical device yet) |
+| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ⏳ Next |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 12 shared + 8 web-core + 17 API + 5 merchant-web + 6 admin-web unit tests, **54 API e2e** (real PostgreSQL, Redis and RabbitMQ) and **20 browser e2e** (11 merchant + 9 admin, Playwright in Chrome against the real stack). All passing.
+**Test totals:** 64 shared + 8 web-core + 27 API + 5 merchant-web + 6 admin-web unit tests, **85 API e2e** (real PostgreSQL, Redis and RabbitMQ, plus an in-process MQTT broker) and **25 browser e2e** (14 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **23 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Phase 7: what was built
+
+### Soundboxes: speakers that announce payments
+A soundbox sits at the counter and says "Received $12.50" (in Khmer, English or Chinese) the moment a payment succeeds. Devices talk MQTT to an EMQX broker; the protocol for firmware developers is in [docs/SOUNDBOX_PROTOCOL.md](docs/SOUNDBOX_PROTOCOL.md).
+
+### Device lifecycle
+1. **MysoftKH registers the device** (admin console → Soundboxes, or `POST /platform/devices`) before it ships. The API returns, **once**, the device's MQTT password (flashed at the factory) and a claim code `XXXX-XXXX` (printed on the box). Only Argon2 hashes are stored.
+2. **The merchant claims it** (dashboard → Soundboxes → Add) by typing the serial number and claim code; any case, with or without the dash. Unknown serial, wrong code and "already claimed" get the same answer, so serials cannot be probed, and claiming is rate-limited (10/min). Claimed devices count toward the plan's device limit; two merchants racing for one box cannot both win.
+3. **Settings**: name, which outlet it announces (one outlet, or every outlet), language and volume. Changes are pushed to the device immediately. "Play test sound" checks it end to end.
+4. **Removing** a device frees the plan slot; it can be claimed again with its box code. MysoftKH can **disable** a device (its next login is refused and nothing is sent to it) or **issue a new password** (the old one stops working at once).
+
+### How the broker is secured
+- EMQX asks the API about every login (`POST /api/v1/mqtt/auth`) and every publish/subscribe (`POST /api/v1/mqtt/acl`). Both hooks require a shared secret header and deny everything when it is missing or wrong. They are not in the public API docs and should only be reachable from the broker.
+- A device logs in with username = client ID = its serial number and its own password. It may only subscribe to `onepay/d/<serial>/cmd` and publish to its own `status` and `telemetry` topics. Other devices' topics, wildcards (`onepay/#`) and publishing to `cmd` are refused (verified against the real EMQX with the simulator's `--probe`).
+- The API connects as a superuser (`MQTT_USERNAME` / `MQTT_PASSWORD`, checked by the same hook).
+
+### Announcements and status
+- When a payment becomes **successful**, the API publishes a `payment` command to every active device of that company that covers the payment's outlet (devices at that outlet, plus devices set to "all outlets"). The text is in each device's language. Pending, failed and reversed payments are never announced.
+- Commands are MQTT 5, QoS 1, not retained, and **expire after 60 seconds**, so a soundbox that was offline never announces an old payment on reconnect.
+- Devices report `online`/`offline` (retained, with `offline` as the last will) and telemetry (battery, signal, firmware). The dashboard shows them live through the existing realtime socket, to the same people who can see that outlet's payments.
+- Soundboxes are optional: without `MQTT_URL` the API runs normally, devices can still be registered and claimed, and `/health` reports `soundbox: disabled`. A broker outage never affects payment ingestion, web alerts or push.
+
+### Tools
+- `docker compose --profile soundbox up -d emqx` starts EMQX 5.8.6 already wired to the local API's hooks.
+- `node tools/soundbox-sim.mjs --serial <SERIAL> --password <device password> [--speak] [--probe]` behaves like a real device: reports online/telemetry, prints (and on Windows speaks) every announcement, and `--probe` checks the broker refuses forbidden topics.
+
+### Checked against the real stack
+With EMQX and the simulator on the dev machine: a device registered in the console and claimed by a merchant logged in through the hook; the merchant's Soundboxes page turned it online about half a second after it connected, without reloading; "Play test sound" and a demo payment were announced in Khmer within a second; forbidden subscriptions and a forged command were refused; disconnecting showed it offline.
+
+### Tests (all passing)
+- 64 shared (incl. the device topic rules), 8 web-core, 27 API, 5 merchant-web and 6 admin-web unit tests.
+- **85 API e2e**, including a new soundbox suite with an in-process MQTT broker: registration and one-time credentials, hook authentication (wrong password, wrong client ID, missing secret, rotated and disabled devices, API superuser), topic rules, claiming (any case, identical refusals, other merchants, plan limit, release and re-claim), announcements only to devices covering the outlet and never for pending payments, settings and test commands, telemetry and online status, and outlet-restricted staff.
+- **25 browser e2e**: the merchant adds a soundbox with its box code (a wrong code is refused) and changes its settings; MysoftKH registers one, sees its credentials once and disables it.
+- Mobile: 23 Flutter tests.
+
+### Configuration
+- `MQTT_URL`, `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_HOOK_SECRET` (API). `MQTT_URL` requires the other two. The hook secret must equal `ONEPAY_MQTT_HOOK_SECRET` given to EMQX.
+- Dev defaults in `docker-compose.yml` and `apps/api/.env` are marked dev-only.
+
+### Phase 7 known gaps
+- **No real hardware yet.** Everything was verified with the simulator; the first physical soundbox needs a firmware partner working from `docs/SOUNDBOX_PROTOCOL.md`.
+- **TLS for MQTT** is not set up locally (plain port 1883). Production must use `mqtts` on 8883 with a real certificate (Phase 8).
+- **Disabling does not kick a connected device** right away: it is refused at its next login and receives no more commands. Kicking needs the EMQX management API (Phase 8).
+- **Spoken amounts** use the same text as push alerts, e.g. "បានទទួលប្រាក់ 7.25$". Devices that play recorded number clips should use the `amount`, `currency` and `locale` fields instead.
+- **No firmware updates over the air** and no per-device announcement history yet.
+- The mobile app does not manage soundboxes (the web dashboard does).
+
+---
+
+## Phase 6: what was built
+
+### Plan limits (enforced by the API)
+- Every plan sets a maximum of active outlets, employees, bank connections and devices. The API refuses to add one more (or to re-activate one) beyond the limit, with code `PLAN_LIMIT_OUTLETS` / `_EMPLOYEES` / `_BANK_CONNECTIONS` / `_DEVICES` and a translated message.
+- What counts: active outlets; active staff (owners do not count); connections that are not disconnected; devices that are not disabled. Deactivating or disconnecting frees the slot. Merchants already above a lower plan's limit keep what they have but cannot add more.
+- Checks run inside the same database transaction as the create, behind a per-company advisory lock, so parallel requests can never take the same last slot (tested with 5 simultaneous requests).
+
+### Subscriptions and invoices
+- New merchants start a **14-day Starter trial**. To subscribe or change plan, the owner picks a plan on the **Plan & billing** page; this issues an **invoice** (`INV-2026-000123`, sequential) with Mysoftkh's payment instructions.
+- **Nothing is marked paid automatically.** MysoftKH staff confirm the payment in the admin console (**Invoices** page) once the money has actually arrived, with the method and transfer reference. That starts the paid period (renewals continue from the previous period end, so paying late does not gain free days). Every confirmation is audited.
+- A lifecycle job (every 15 minutes; also runnable from the Invoices page) moves subscriptions along: trial over → `EXPIRED`; period ending within 7 days → renewal invoice; period over → `PAST_DUE` (still usable); more than 7 days past due → `EXPIRED`. It is safe to run on several API instances: changes are conditional, and the database allows only one unpaid invoice per subscription.
+- **Payment alerts never stop for billing reasons.** A lapsed subscription only blocks adding outlets, employees and connections (`SUBSCRIPTION_INACTIVE`).
+- Only the owner can choose a plan (`subscription.manage`); admins and accountants can view billing.
+- The merchant dashboard shows a banner when the trial ends within 3 days, a payment is overdue, or the plan has ended.
+
+### Reports
+- `GET /reports/sales`: received money per **day, week (from Monday) or month**, in Phnom Penh time, with totals per currency (successful, pending, failed, reversed), and breakdowns **by outlet** and **by bank/provider**. Optional outlet filter; demo payments can be left out. Up to 366 days per report.
+- `GET /reports/transactions.csv`: every payment in the range (any status), Phnom Penh times, UTF-8 with BOM so Excel shows Khmer and Chinese names. Streamed in batches, capped at 100,000 rows. Text from banks (payer names, references) is neutralised so it cannot run as a spreadsheet formula.
+- `GET /reports/sales.pdf`: the sales report as an A4 PDF labelled in Khmer, English or Chinese. Fonts: Kantumruy Pro (Khmer and Latin) and Noto Sans SC (Chinese). Noto Sans Khmer was tried first but crashes the PDF library's Khmer mark positioning on words like "ទំព័រ"; Kantumruy Pro shaped all 104 Khmer strings used across the apps. If a merchant-typed name still cannot be shaped, it is drawn without its marks (and logged) rather than failing the download.
+- Same access rules as transactions: outlet-restricted staff only see their outlets; cashiers have no report access.
+- Merchant dashboard **Reports** page: presets (this month, last month, last 30 days, custom), grouping, outlet filter, totals, chart, breakdown tables, CSV and PDF download.
+
+### Translated API errors (km / en / zh)
+- Every error now has the same shape: `{ statusCode, error, code, message, details? }`, with `message` in the caller's language (`Accept-Language`).
+- A shared catalog (`packages/shared/src/errors.ts`) holds user-facing messages in all three languages. Existing English messages are recognised automatically (including ones with values, such as "Date range cannot exceed 366 days"), so they gained a stable `code` without touching the code that throws them. Unknown messages stay in English rather than risk a wrong translation. Validation errors return one translated sentence, with the field details (English) in `details`.
+- The dashboards ask for the language shown on screen (the language cookie, or the app's default: Khmer for merchants, English for MysoftKH staff). The mobile app sends its current language.
+- 403 errors that carry their own code (plan limits, ended subscription) now show that message instead of a generic "not allowed".
+
+### Admin console
+- New **Invoices** page: filter by status, confirm a payment (method, date received, transfer reference) or void an unpaid invoice, and run the renewal checks on demand. Support staff can view but not change anything.
+
+### Tests (all passing)
+- 58 shared (incl. every error translation keeping its placeholders), 8 web-core, 27 API, 5 merchant-web and 6 admin-web unit tests.
+- **75 API e2e**, including new suites for billing (trial, limits per resource, parallel requests, expiry, checkout, payment confirmation, renewal → past due → expired, void, permissions) and reports (Phnom Penh day boundaries, week/month grouping, outlet restrictions, CSV contents and formula neutralising, PDFs in three languages, translated errors).
+- **23 browser e2e**: the merchant journey now hits the trial outlet limit, chooses Business, has the invoice confirmed by staff through the real API, then continues; plus reports with CSV and PDF downloads. The admin console confirms an invoice payment and checks support staff are read-only.
+- Mobile: 23 Flutter tests, `flutter analyze` clean.
+
+### Configuration
+- `BILLING_PAYMENT_INSTRUCTIONS`: how merchants pay Mysoftkh (bank account, KHQR…), shown with every unpaid invoice. **The default is a placeholder; set the real bank details before going live.**
+- `BILLING_JOB_INTERVAL_SECONDS`: lifecycle job interval (default 900; 0 disables it, as in tests).
+
+### Phase 6 known gaps
+- **No online payment of invoices** (KHQR/card). Payments are confirmed by staff; an online checkout is a later step.
+- **No proration:** changing plan mid-period starts a new full period on the payment date.
+- **No invoice PDF or email:** merchants see invoices in the dashboard only; there is no tax invoice document or reminder email yet.
+- **Trials use Starter limits** (1 outlet, 3 employees, 2 connections). Giving trials Business limits is a one-line change if Mysoftkh prefers.
+- **Font size:** the Chinese PDF font package adds about 96 MB to the API's installed packages (only two of its files are used); the production Docker image (Phase 8) should copy just those files.
+- Text copied out of a Khmer PDF comes out in visual order (normal for complex scripts in PDF); the printed and on-screen page is correct.
+- Chinese labels in the PDF sit about 2px lower than Latin values on the same row (different font metrics; cosmetic).
+
+---
+
+## Phase 5: what was built
+
+### One PayAlert mobile app (`apps/mobile`, Flutter 3.47 / Dart 3.13, Android + iOS)
+- **Sign in** with the same accounts as the merchant dashboard. The access token is kept in memory, and the refresh token in the platform keystore (Android Keystore / iOS Keychain via `flutter_secure_storage`). Tokens are never written to plain preferences.
+- **Session handling** mirrors the web BFF: on a 401 the app refreshes once and retries. Concurrent requests share a single refresh, because refresh tokens are single-use. A session the server has ended returns to sign-in with a "session expired" notice. Being offline is not treated as signing out.
+- **Home:** today's received total in USD and KHR (successful payments only), with counts of successful, pending and failed payments. Below it, a **live feed** over the `/realtime` Socket.IO connection, with a Live / Connecting / Offline indicator. The socket reconnects on its own and renews the token when needed.
+- **Payment alerts while the app is open:** a heads-up notification with sound and, when the phone has a voice for the language, the amount **spoken aloud** in Khmer, English or Chinese. There is a sound on/off switch. Only `SUCCESS` payments alert. Pending payments are shown as pending, never as money received, and demo payments are tagged "Demo" and "[DEMO]".
+- **Outlet filter:** "All outlets / Outlet A / Outlet B". The choice applies to the Today total, the live feed, alerts and the Transactions list. It is remembered per company on the device, because a counter phone usually belongs to one shop. It is hidden when the member sees only one outlet. Outlet-restricted staff only ever get their own outlets (enforced by the API).
+- **Transactions:** today / 7 days / 30 days, status filter, infinite scroll, pull to refresh, and a details sheet.
+- **Settings:** profile, company and role, language (saved to the profile, so server push uses it too), sound alerts, push status, and sign out.
+- **Languages:** Khmer (default before sign-in), English and Chinese via ARB files and `flutter gen-l10n`. Khmer months and Phnom Penh time (UTC+7) are used for dates, and money uses integer minor units (`$12.50`, `៛18,000`).
+- **Push when the app is closed (FCM):** wired up but **off unless the build is given Firebase settings** (`--dart-define=FIREBASE_*`). Without them the Settings screen says push is not configured. Nothing is simulated. The app registers its token with `PUT /me/push-tokens` and removes it on sign-out, so the next user of the phone does not get the previous user's alerts.
+
+### Android build setup
+- App name "One PayAlert", application id `com.mysoftkh.onepay_mobile`.
+- `INTERNET` and `POST_NOTIFICATIONS` permissions.
+- Core library desugaring and `compileSdk 37` (required by `flutter_local_notifications` 23); AGP 9.1.1.
+- **Plain HTTP is allowed in debug builds only**, and only to `10.0.2.2`, `localhost` and `127.0.0.1` (`src/debug/res/xml/network_security_config.xml`). Release builds keep Android's HTTPS-only default.
+
+### Bugs found by running on a real emulator
+- **Every API call went to `/api/v1auth/login`:** Dio joins the base URL and path as plain text, so the missing trailing slash broke every request. Unit tests had not caught it because they inject their own HTTP client. Fixed (`apiBaseOptions()`), and a test now pins the real URLs.
+- **Pending payments were drawn as `+$12.00`**, which reads as money received. The `+` is now shown for successful payments only.
+
+### How to run the app
+```powershell
+. .\tools\dev-env.ps1                      # Flutter, Java 17 and Android SDK from D:\dev, this session only
+cd apps\mobile
+flutter emulators --launch onepay          # or plug in a phone with USB debugging
+flutter run                                # talks to the API at http://10.0.2.2:4100 (the host machine)
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:4100   # a real phone on the same Wi-Fi
+```
+The API, Postgres, Redis and RabbitMQ must be running (see "How to run" in Phase 1).
+
+### Tests (all passing)
+- `flutter analyze`: no issues.
+- `flutter test`: 23 unit and widget tests covering money and date formatting, the token/refresh client (single-flight refresh, retry, session expiry, offline), the API URLs, translation completeness for km/zh, the login screen, payment tiles and the outlet filter.
+- `flutter test integration_test/app_test.dart` on the Android 16 emulator against the real local API: it registers a throwaway merchant, signs in through the UI, creates a demo connection and simulates a payment. It then checks that the payment arrives **live** on the home feed and in Transactions, and signs out.
+- Checked by hand on the emulator in Khmer: the Today total, live feed, and outlet filter (a payment at another outlet was neither listed nor announced), plus the Transactions and Settings screens.
+
+### Phase 5 known gaps
+- **FCM push is not configured:** it needs a Firebase project (`google-services` values passed as dart-defines, plus the server's service account). Closed-app push has therefore **not been tested on a device**.
+- **FCM token API:** `firebase_messaging` 17 deprecates `getToken()` in favour of `register()`, which returns a Firebase Installation ID for FCM's newer direct-send API. The server sends to registration tokens, so the app keeps `getToken()` for now. The app and API should be migrated together.
+- **iOS has not been built or run:** that needs a Mac with Xcode, an Apple developer account, and APNs set up in Firebase.
+- **Launcher icon and splash screen** are still Flutter's defaults. Branded assets are needed.
+- **Release signing** is not configured: release builds are signed with the debug key.
+- **Server error messages are English-only** (for example a validation message shown on the Khmer login screen). Localising API errors belongs with the Phase 6 i18n work.
+- **Spoken alerts** depend on the phone having a Khmer, English or Chinese text-to-speech voice. Without one, only the notification sound plays. The voice was not audible-tested on the emulator.
 
 ---
 
@@ -276,5 +427,5 @@ npm test && npm run test:e2e
 - ~~Per-request DB revalidation cost~~: resolved in Phase 2 with a version-invalidated Redis cache.
 - **Postgres Row-Level Security** as a second line of tenant defence is planned for Phase 8.
 - **KHR minor unit:** uses the ISO 4217 exponent of 2 for interop. KHR is displayed with 0 decimals.
-- **Flutter SDK is not installed** on the dev machine. It is required before Phase 5.
+- ~~Flutter SDK is not installed~~: resolved in Phase 5. Flutter, JDK 17 and the Android SDK live in `D:\dev` and are put on PATH per session by `tools/dev-env.ps1`.
 - **Not a git commit yet:** the repository is initialised, but nothing has been committed.

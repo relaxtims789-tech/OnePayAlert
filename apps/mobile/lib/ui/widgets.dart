@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
 import '../data/models.dart';
 import '../l10n/app_localizations.dart';
 import '../services/realtime_service.dart';
+import '../state/app_state.dart';
 import 'theme.dart';
 
 String statusLabel(AppLocalizations t, String status) => switch (status) {
@@ -108,7 +110,7 @@ class TxnTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('+${formatMoney(txn.amountMinor, txn.currency)}',
+            Text('${txn.status == 'SUCCESS' ? '+' : ''}${formatMoney(txn.amountMinor, txn.currency)}',
                 style: TextStyle(fontWeight: FontWeight.w700, color: txn.status == 'SUCCESS' ? Brand.success : Brand.ink, fontFeatures: const [FontFeature.tabularFigures()])),
             const SizedBox(height: 4),
             StatusPill(txn.status),
@@ -184,6 +186,35 @@ class ErrorView extends StatelessWidget {
         const SizedBox(height: 12),
         OutlinedButton(onPressed: onRetry, child: Text(t.retry)),
       ]),
+    );
+  }
+}
+
+/// "All outlets / Outlet A / Outlet B" switch. Hidden when the member sees one outlet or fewer.
+class OutletChips extends ConsumerWidget {
+  const OutletChips({super.key, this.padding = const EdgeInsets.fromLTRB(16, 0, 16, 8)});
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final outlets = ref.watch(outletsProvider).value ?? const <Outlet>[];
+    if (outlets.length < 2) return const SizedBox.shrink();
+    final t = AppLocalizations.of(context);
+    final selected = ref.watch(selectedOutletProvider);
+    Widget chip(String? id, String label) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: ChoiceChip(
+            key: Key('outlet-${id ?? 'all'}'),
+            avatar: id == null ? const Icon(Icons.storefront_rounded, size: 18) : null,
+            label: Text(label),
+            selected: selected == id,
+            onSelected: (_) => ref.read(outletChoiceProvider.notifier).set(id),
+          ),
+        );
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: padding,
+      child: Row(children: [chip(null, t.allOutlets), for (final o in outlets) chip(o.id, o.name)]),
     );
   }
 }

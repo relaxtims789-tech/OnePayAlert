@@ -167,3 +167,14 @@ class Page<T> {
         pageSize: (j['pageSize'] as num).toInt(),
       );
 }
+
+/// A branch/shop of the active company, as far as this member may see.
+class Outlet {
+  const Outlet({required this.id, required this.name, required this.code});
+  final String id;
+  final String name;
+  final String code;
+
+  factory Outlet.fromJson(Map<String, dynamic> j) =>
+      Outlet(id: j['id'] as String, name: j['name'] as String, code: j['code'] as String);
+}

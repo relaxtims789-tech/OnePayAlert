@@ -97,6 +97,8 @@ export interface TransactionSummaryDto {
 export const RealtimeEvent = {
   TRANSACTION_CREATED: 'transaction.created',
   TRANSACTION_UPDATED: 'transaction.updated',
+  /** A soundbox came online/offline or reported telemetry (payload: DeviceDto). */
+  DEVICE_UPDATED: 'device.updated',
 } as const;
 export type RealtimeEvent = (typeof RealtimeEvent)[keyof typeof RealtimeEvent];
 

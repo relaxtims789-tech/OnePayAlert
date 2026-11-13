@@ -42,6 +42,24 @@ export interface KhqrAccountDto {
   outletId: string | null;
 }
 
+/** Bakong connection health for MysoftKH (admin console, platform health). */
+export interface KhqrHealthDto {
+  mode: 'live' | 'simulated' | 'off';
+  /** live only: error = token rejected or expired; warning = expiring soon or calls failing right now. */
+  status: 'ok' | 'warning' | 'error' | 'simulated' | 'off';
+  /** From the token itself when it is a JWT; null when unknown. */
+  tokenExpiresAt: string | null;
+  tokenDaysLeft: number | null;
+  /** Bakong answered 401/403 to the latest call that failed, with no success since. */
+  tokenRejected: boolean;
+  lastOkAt: string | null;
+  lastErrorAt: string | null;
+  lastError: string | null;
+  /** KHQR codes waiting for payment right now, and the oldest one's creation time. */
+  pendingCharges: number;
+  oldestPendingAt: string | null;
+}
+
 /** GET /khqr/status: whether KHQR collection can confirm payments here. */
 export interface KhqrStatusDto {
   /** live = Bakong Open API; simulated = demo/dev without a Bakong token; off = not available. */

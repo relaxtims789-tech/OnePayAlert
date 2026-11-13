@@ -20,6 +20,7 @@ import { IngestionService } from '../payments/ingestion.service';
 import { maskAccount } from '../payments/adapters';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { BakongHealthService } from './bakong-health.service';
 import { BAKONG_CLIENT, BakongError, SimulatedBakongClient, type BakongClient, type BakongTransaction } from './bakong.client';
 import { encodeKhqr, khqrSafeText } from './khqr-encoder';
 
@@ -65,6 +66,7 @@ export class KhqrService {
     private readonly redis: RedisService,
     private readonly config: AppConfig,
     @Inject(BAKONG_CLIENT) private readonly bakong: BakongClient,
+    private readonly bakongHealth: BakongHealthService,
   ) {}
 
   /** Per environment: dev, test and demo may share one Redis. */
@@ -206,7 +208,7 @@ export class KhqrService {
         const batch = pending.slice(i, i + BATCH);
         let paid: Set<string>;
         try {
-          paid = await this.bakong.paidAmong(batch.map((c) => c.md5));
+          paid = await this.bakongHealth.track(() => this.bakong.paidAmong(batch.map((c) => c.md5)));
         } catch (e) {
           this.logger.warn(`Bakong check failed: ${e instanceof Error ? e.message : String(e)}`);
           break; // try again next round
@@ -244,7 +246,7 @@ export class KhqrService {
   private async settle(charge: ChargeWithRefs): Promise<boolean> {
     let tx: BakongTransaction | null;
     try {
-      tx = await this.bakong.checkMd5(charge.md5);
+      tx = await this.bakongHealth.track(() => this.bakong.checkMd5(charge.md5));
     } catch (e) {
       if (e instanceof BakongError) this.logger.warn(`Bakong detail check failed for ${charge.reference}: ${e.message}`);
       return false;

@@ -2,13 +2,14 @@ import { Controller, Get, Headers, Inject, NotFoundException, Res, ServiceUnavai
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { timingSafeEqual } from 'node:crypto';
-import { dependencyUp, registry } from '../common/metrics';
+import { bakongTokenExpiry, dependencyUp, registry } from '../common/metrics';
 import { ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from '../common/decorators';
 import { AppConfig } from '../config/app-config.service';
 import { MQTT_BRIDGE, type MqttBridge } from '../devices/mqtt.bridge';
 import { IngestQueue } from '../infra/ingest-queue.service';
+import { BakongHealthService } from '../khqr/bakong-health.service';
 import { RedisService } from '../infra/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -22,6 +23,7 @@ export class HealthController {
     private readonly queue: IngestQueue,
     private readonly config: AppConfig,
     @Inject(MQTT_BRIDGE) private readonly mqtt: MqttBridge,
+    private readonly bakong: BakongHealthService,
   ) {}
 
   /** 200 when the database is reachable; Redis/queue outages report `degraded`. */
@@ -43,10 +45,18 @@ export class HealthController {
       queue: queue ? `up (${this.queue.driver})` : 'down',
       // Soundboxes are optional: a broker outage does not degrade payment ingestion.
       soundbox: !this.mqtt.enabled ? 'disabled' : this.mqtt.connected() ? 'up' : 'down',
+      // KHQR collection: live/simulated/off, or `failing` when Bakong refuses the token (details in the admin console).
+      khqr: database ? await this.khqrState() : 'unknown',
       environment: this.config.get('APP_ENV'),
     };
     if (!database) throw new ServiceUnavailableException(body);
     return body;
+  }
+
+  private async khqrState(): Promise<string> {
+    const h = await this.bakong.health().catch(() => null);
+    if (!h) return 'unknown';
+    return h.status === 'error' ? 'failing' : h.mode;
   }
 
   /**
@@ -73,6 +83,11 @@ export class HealthController {
     dependencyUp.set({ dependency: 'redis' }, (await this.redis.ping()) ? 1 : 0);
     dependencyUp.set({ dependency: 'queue' }, this.queue.isConnected() ? 1 : 0);
     if (this.mqtt.enabled) dependencyUp.set({ dependency: 'soundbox_broker' }, this.mqtt.connected() ? 1 : 0);
+    const khqr = database ? await this.bakong.health().catch(() => null) : null;
+    if (khqr?.mode === 'live') {
+      dependencyUp.set({ dependency: 'bakong' }, khqr.status === 'error' ? 0 : 1);
+      if (khqr.tokenExpiresAt) bakongTokenExpiry.set(Math.round((Date.parse(khqr.tokenExpiresAt) - Date.now()) / 1000));
+    }
     res.setHeader('Content-Type', registry.contentType);
     res.setHeader('Cache-Control', 'no-store');
     res.end(await registry.metrics());

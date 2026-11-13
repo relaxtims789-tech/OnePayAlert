@@ -14,6 +14,7 @@ import { AppConfigModule } from './config/config.module';
 import { EmployeesModule } from './employees/employees.module';
 import { HealthController } from './health/health.controller';
 import { InfraModule } from './infra/infra.module';
+import { BakongModule } from './khqr/bakong.module';
 import { KhqrModule } from './khqr/khqr.module';
 import { MailModule } from './mail/mail.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -55,6 +56,8 @@ class AuditModule {}
     TransactionsModule,
     ReportsModule,
     KhqrModule,
+    // The public /health and /metrics report Bakong health.
+    BakongModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -187,6 +187,10 @@ test('shows system health and provider catalogue', async ({ page }) => {
   await page.getByRole('link', { name: 'System health' }).click();
   await expect(page.getByTestId('health-status')).toBeVisible();
   await expect(page.getByText('Database').locator('..').locator('..')).toContainText('Up');
+  // Bakong KHQR: the test API has no Bakong token, so it says payments are simulated (live states are covered by API e2e).
+  const khqr = page.getByTestId('khqr-health');
+  await expect(khqr).toHaveAttribute('data-status', 'simulated');
+  await expect(khqr).toContainText('Simulated: no Bakong token, demo payments only');
   await page.getByRole('link', { name: 'Banks & gateways' }).click();
   const table = page.getByTestId('providers-table');
   await expect(table.getByRole('row').filter({ hasText: 'ABA Bank' })).toContainText('Awaiting integration');

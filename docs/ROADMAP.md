@@ -48,7 +48,7 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 
 ## Phase 9: Bakong KHQR collection ✅
 - Dynamic KHQR codes for an exact amount (web and mobile), confirmed with the Bakong Open API and recorded through the normal payment pipeline. Mismatched payments are held for review. Simulated outside production when there is no Bakong token; off in production without one.
-- Still open: the first run against the real Bakong API (needs a token), token-expiry reminders, official KHQR artwork (see PROJECT_STATUS.md).
+- Token health (expiry, rejected token) is shown in the admin console and metrics. Still open: the first run against the real Bakong API (needs a token), official KHQR artwork (see PROJECT_STATUS.md).
 
 ## Next: pilot
 - Get a Bakong token and run KHQR live, deploy the demo environment, run CI on GitHub, onboard the first merchants, and a physical soundbox.

@@ -36,6 +36,12 @@ export const dependencyUp = new Gauge({
   registers: [registry],
 });
 
+export const bakongTokenExpiry = new Gauge({
+  name: 'onepay_bakong_token_expiry_seconds',
+  help: 'Seconds until the Bakong API token expires (only when it is known)',
+  registers: [registry],
+});
+
 let defaultsOn = false;
 /** Process metrics (CPU, memory, event loop). Only in the real server, not in tests. */
 export function enableDefaultMetrics(): void {

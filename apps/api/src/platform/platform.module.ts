@@ -1,3 +1,4 @@
+import { BakongModule } from '../khqr/bakong.module';
 import {
   Body,
   Controller,
@@ -145,6 +146,7 @@ export class PlatformController {
 }
 
 @Module({
+  imports: [BakongModule],
   controllers: [PlatformController],
   providers: [PlatformCompaniesService, PlatformOpsService],
 })

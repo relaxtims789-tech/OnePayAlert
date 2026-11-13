@@ -5,6 +5,8 @@ import type { AddressInfo } from 'node:net';
 import request from 'supertest';
 import { BAKONG_CLIENT, LiveBakongClient, SimulatedBakongClient } from '../src/khqr/bakong.client';
 import { KhqrService } from '../src/khqr/khqr.service';
+import { RedisService } from '../src/infra/redis.service';
+import { hash } from '@node-rs/argon2';
 import { API, PASSWORD, bearer, createTestApp, login, prismaOf, registerMerchant, uniqueEmail, waitFor } from './helpers';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -171,6 +173,8 @@ describe('Bakong KHQR collection (e2e)', () => {
     let bakongServer: Server;
     const paid = new Map<string, Record<string, unknown>>();
     const seenTokens = new Set<string>();
+    /** Makes the fake Bakong answer 401, as the real one does for an expired or revoked token. */
+    let rejectToken = false;
 
     beforeAll(async () => {
       bakongServer = createServer((req, res) => {
@@ -178,6 +182,10 @@ describe('Bakong KHQR collection (e2e)', () => {
         req.on('data', (c) => (body += c));
         req.on('end', () => {
           seenTokens.add(String(req.headers.authorization));
+          if (rejectToken) {
+            res.writeHead(401, { 'content-type': 'application/json' });
+            return res.end(JSON.stringify({ responseCode: 1, responseMessage: 'Unauthorized' }));
+          }
           const json = JSON.parse(body || 'null');
           const reply = (o: unknown) => {
             res.writeHead(200, { 'content-type': 'application/json' });
@@ -197,6 +205,7 @@ describe('Bakong KHQR collection (e2e)', () => {
       const port = (bakongServer.address() as AddressInfo).port;
       app = await createTestApp({ bakongClient: new LiveBakongClient(`http://127.0.0.1:${port}`, 'live-test-token-0123456789') });
       http = app.getHttpServer();
+      await app.get(RedisService).client.del('onepay:test:bakong:health'); // start from a clean record
     });
     afterAll(async () => {
       await app.close();
@@ -243,6 +252,39 @@ describe('Bakong KHQR collection (e2e)', () => {
       expect(txn).toMatchObject({ status: 'SUCCESS', amountMinor: 1_800_000, currency: 'KHR', isSimulated: false, providerTxnId: expect.stringMatching(/^a1b2/) });
       const event = await prismaOf(app).webhookEvent.findFirstOrThrow({ where: { providerEventId: `khqr_${c.md5}` } });
       expect(event.source).toBe('POLLER');
+    });
+
+    it('shows MysoftKH when Bakong rejects the token, and clears once it works again', async () => {
+      const email = uniqueEmail('support');
+      await prismaOf(app).user.create({ data: { email, fullName: 'MysoftKH Support', passwordHash: await hash(PASSWORD), platformRole: 'SUPPORT', locale: 'en' } });
+      const support = await login(app, email);
+      const health = async () => (await request(http).get(`${API}/platform/health`).set('Authorization', bearer(support)).expect(200)).body;
+
+      const shop = await registerMerchant(app, 'Token KHQR');
+      const conn = (
+        await request(http)
+          .post(`${API}/bank-connections`)
+          .set('Authorization', bearer(shop.tokens))
+          .send({ providerId: await bakongProviderId(http, shop.tokens), displayName: 'Bakong', currency: 'USD', accountName: 'Token KHQR', externalAccountId: 'token_khqr@aclb' })
+          .expect(201)
+      ).body as BankConnectionDto;
+      await request(http).post(`${API}/khqr/charges`).set('Authorization', bearer(shop.tokens)).send({ bankConnectionId: conn.id, amount: '2.50' }).expect(201);
+
+      const before = await health();
+      expect(before.khqr).toMatchObject({ mode: 'live', status: 'ok', tokenRejected: false, tokenExpiresAt: null, lastOkAt: expect.any(String) });
+
+      rejectToken = true;
+      await app.get(KhqrService).pollOnce();
+      const failing = await health();
+      expect(failing.status).toBe('degraded');
+      expect(failing.khqr).toMatchObject({ status: 'error', tokenRejected: true, lastError: expect.stringContaining('rejected the API token (HTTP 401)') });
+      expect(failing.khqr.pendingCharges).toBeGreaterThanOrEqual(1);
+      expect((await request(http).get(`${API}/health`).expect(200)).body.khqr).toBe('failing');
+
+      rejectToken = false;
+      await app.get(KhqrService).pollOnce();
+      expect((await health()).khqr).toMatchObject({ status: 'ok', tokenRejected: false });
+      expect((await request(http).get(`${API}/health`).expect(200)).body.khqr).toBe('live');
     });
   });
 });

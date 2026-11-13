@@ -1,3 +1,4 @@
+import type { KhqrHealthDto } from './khqr';
 import type { CompanyDto } from './api-types';
 import type { CompanyRole, CompanyStatus, PlatformRole, UserStatus } from './enums';
 import type { Currency } from './money';
@@ -130,6 +131,8 @@ export interface PlatformHealthDto {
   environment: string;
   webhookEvents: { received: number; stuck: number; failedLast24h: number; processedLast24h: number };
   recentFailures: FailedWebhookEventDto[];
+  /** Bakong KHQR collection: token expiry and whether calls to Bakong work. */
+  khqr: KhqrHealthDto;
 }
 
 export type PlatformProviderDto = PaymentProviderDto & { isActive: boolean; connectionCount: number };

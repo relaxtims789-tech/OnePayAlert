@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-13 — CI green on GitHub, per-account sign-in lockout_
+_Last updated: 2026-11-13 — Bakong token health in the admin console_
 
 ## Phase overview
 
@@ -21,7 +21,40 @@ _Last updated: 2026-11-13 — CI green on GitHub, per-account sign-in lockout_
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 73 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **104 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **27 browser e2e** (16 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **29 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 73 shared + 8 web-core + 49 API + 5 merchant-web + 6 admin-web unit tests, **105 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **27 browser e2e** (16 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **29 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Bakong token health
+
+Closes the KHQR gap "the token expires and there is no reminder". Before this, an expired or revoked Bakong token only showed in the API logs while merchants' KHQR codes stayed pending.
+
+- **Every call to Bakong is recorded** (payment checks and account checks): last success, last error, and whether Bakong rejected the token (401/403). The record lives in Redis, so all API instances share it.
+- **Token expiry** is read from the token itself (Bakong tokens are JWTs with `exp`); it shows as unknown for any other token.
+- **Verdict:**
+  - `error` when the token is rejected or expired.
+  - `warning` when it expires within 14 days, or when calls have been failing in the last 15 minutes.
+  - `ok` otherwise.
+  - `simulated` or `off` without a token.
+- **Admin console → System health** has a Bakong KHQR card:
+  - mode and status;
+  - token expiry with days left;
+  - last successful call;
+  - last error;
+  - KHQR codes waiting for payment, and the oldest one.
+  - It gives the next step in km/en/zh (renew in the NBC portal, set `BAKONG_API_TOKEN`, restart). An `error` turns the overall status to **Degraded**.
+- **Monitoring:**
+  - The public `/health` reports `khqr: live | simulated | off | failing`.
+  - Metrics add `onepay_dependency_up{dependency="bakong"}` and `onepay_bakong_token_expiry_seconds`, so an alert can fire before the token runs out.
+
+Checked by hand against a local fake Bakong: the card showed "Not working" with the 401 and the renewal steps, then "expires in 10 days" once the token was accepted.
+
+Tests:
+- 5 unit: JWT expiry, rounding of days left, the verdict.
+- 1 API e2e: Bakong starts answering 401 → platform health `error` and degraded, public `/health` `failing` → recovers once Bakong answers.
+- The admin browser test checks the card.
+
+Known gap: no email or push reminder to MysoftKH staff yet. Use the card, or alert on the metric.
 
 ---
 
@@ -84,7 +117,7 @@ New permission **`payment.collect`**: owner, admin, manager and **cashier** (not
 
 ### Known gaps
 - **Not yet run against the real Bakong API.** Everything is built to its documented responses and tested against a fake server; the first real token will show whether anything differs (for example error codes or amount formats).
-- Bakong's token **expires**; there is no reminder yet. When it is rejected, polling logs errors and codes stay pending.
+- ~~No reminder before the Bakong token expires~~: now shown in the admin console and metrics (see "Bakong token health"); still no email reminder.
 - The **KHQR card design is approximate** (red header, no official KHQR logo asset); check it against NBC's brand guidelines before launch.
 - Codes are confirmed by **polling** (about 3 s). Bakong offers no merchant webhook for this.
 - No refunds through Bakong; a REVIEW payment is resolved in the merchant's bank app.

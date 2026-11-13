@@ -1,5 +1,6 @@
 import { AdapterKey, BAKONG_ACCOUNT_PATTERN } from '@onepay/shared';
 import { apiError } from '../common/api-error';
+import { BakongHealthService } from '../khqr/bakong-health.service';
 import { BAKONG_CLIENT, type BakongClient } from '../khqr/bakong.client';
 import { khqrSafeText } from '../khqr/khqr-encoder';
 import {
@@ -64,6 +65,7 @@ export class BankConnectionsService {
     private readonly ingestion: IngestionService,
     private readonly entitlements: EntitlementsService,
     @Inject(BAKONG_CLIENT) private readonly bakong: BakongClient,
+    private readonly bakongHealth: BakongHealthService,
   ) {}
 
   webhookUrl(c: ConnectionWithProvider): string | null {
@@ -164,7 +166,8 @@ export class BankConnectionsService {
       if (!accountName || accountName !== (dto.accountName ?? '').trim()) {
         throw apiError(HttpStatus.BAD_REQUEST, 'KHQR_MERCHANT_NAME_INVALID');
       }
-      if ((await this.bakong.accountExists(externalAccountId)) === false) {
+      const bakongId = externalAccountId;
+      if ((await this.bakongHealth.track(() => this.bakong.accountExists(bakongId))) === false) {
         throw apiError(HttpStatus.BAD_REQUEST, 'BAKONG_ACCOUNT_NOT_FOUND');
       }
     }

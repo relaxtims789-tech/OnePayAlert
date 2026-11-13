@@ -199,4 +199,79 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roleCashier => '收银员';
+
+  @override
+  String get collect => '收款';
+
+  @override
+  String get collectTitle => '收款';
+
+  @override
+  String get collectAccount => '收款账户';
+
+  @override
+  String collectAmount(String currency) {
+    return '金额（$currency）';
+  }
+
+  @override
+  String get collectShowQr => '显示 KHQR';
+
+  @override
+  String get collectScanHint => '使用任意柬埔寨银行 App 扫码';
+
+  @override
+  String get collectWaiting => '等待顾客付款…';
+
+  @override
+  String collectExpiresIn(String time) {
+    return '$time 后过期';
+  }
+
+  @override
+  String get collectCancel => '取消';
+
+  @override
+  String get collectNew => '新收款';
+
+  @override
+  String get collectPaid => '已收到付款';
+
+  @override
+  String collectPaidFrom(String account) {
+    return '付款账户 $account';
+  }
+
+  @override
+  String get collectExpired => '二维码已过期';
+
+  @override
+  String get collectExpiredHint => '未在有效期内收到付款。如顾客仍需付款，请重新生成二维码。';
+
+  @override
+  String get collectCanceled => '二维码已取消';
+
+  @override
+  String get collectReview => '付款需核对';
+
+  @override
+  String get collectReviewHint => 'Bakong 报告的付款与此请求不符，未计入收款，请在银行 App 中核对。';
+
+  @override
+  String get collectDemoMode => '演示模式：Bakong 为模拟，不会产生真实资金往来。';
+
+  @override
+  String get collectSimulatePaid => '顾客已付款（演示）';
+
+  @override
+  String get collectNotAvailable => 'KHQR 收款暂不可用，需先由 MysoftKH 将平台接入 Bakong。';
+
+  @override
+  String get collectNoAccount => '尚未连接 Bakong KHQR 账户。店主可在网页后台中连接。';
+
+  @override
+  String get collectAmountInvalid => '请输入有效金额';
+
+  @override
+  String get collectAmountInvalidKhr => '请输入整数瑞尔金额';
 }

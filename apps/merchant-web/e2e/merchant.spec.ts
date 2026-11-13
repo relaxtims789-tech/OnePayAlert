@@ -267,6 +267,44 @@ test('connecting a signed-webhook gateway shows the secret exactly once', async 
   expect(await page.content()).not.toContain(secret);
 });
 
+test('collects a payment with a KHQR code (simulated Bakong)', async ({ page }) => {
+  await signIn(page, owner.email, owner.password);
+  await page.goto('/bank-connections');
+  await page.getByRole('button', { name: 'Connect account' }).first().click();
+  await page.getByTestId('provider-BAKONG_KHQR').click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Account label').fill('Bakong USD');
+  await dialog.getByTestId('bakong-account').fill('Dara_Coffee@ACLB');
+  await dialog.getByTestId('qr-name').fill('Dara Coffee');
+  await dialog.getByRole('button', { name: 'Connect account' }).click();
+  await expect(page.getByText('Account connected')).toBeVisible();
+  const card = page.getByTestId('connection-card').filter({ hasText: 'Bakong USD' });
+  await expect(card).toContainText('dara_coffee@aclb'); // stored lower-case, as Bakong does
+  await expect(card).toContainText('Active');
+
+  await page.getByRole('link', { name: 'Collect payment' }).click();
+  await expect(page.getByText('Demo mode: Bakong is simulated')).toBeVisible();
+  await page.getByTestId('collect-amount').fill('7.50');
+  await page.getByTestId('show-khqr').click();
+  await expect(page.getByTestId('khqr-amount')).toHaveText('$7.50');
+  await expect(page.getByTestId('khqr-qr').locator('svg')).toBeVisible();
+  await expect(page.getByTestId('khqr-card')).toContainText('Dara Coffee');
+
+  await page.getByTestId('simulate-paid').click();
+  const result = page.getByTestId('khqr-result');
+  await expect(result).toHaveAttribute('data-status', 'PAID');
+  await expect(result).toContainText('Payment received');
+  await expect(result).toContainText('de•••@bkrt');
+  const reference = ((await result.textContent()) ?? '').match(/OPA[0-9A-Z]{7}/)?.[0];
+  expect(reference).toBeTruthy();
+
+  // It is a payment like any other, marked as demo.
+  await page.getByRole('link', { name: 'Transactions' }).click();
+  const row = page.getByRole('row').filter({ hasText: reference! });
+  await expect(row).toContainText('$7.50');
+  await expect(row).toContainText('Demo');
+});
+
 test('switches the whole interface to Khmer and remembers it', async ({ page }) => {
   await signIn(page, owner.email, owner.password);
   await page.getByTestId('language-switcher').first().selectOption('km');
@@ -300,6 +338,11 @@ test('a cashier only sees what their role and outlet allow (in their own languag
   // Typing a forbidden URL still gets no data: the API refuses.
   await page.goto('/employees');
   await expect(page.getByText('អ្នកមិនមានសិទ្ធិធ្វើសកម្មភាពនេះទេ។')).toBeVisible(); // permission denied
+
+  // Cashiers take KHQR payments without being allowed to see bank connections.
+  await nav.getByRole('link', { name: 'ទទួលការទូទាត់' }).click(); // Collect payment
+  await expect(page.getByText('dara_coffee@aclb')).toBeVisible();
+  await expect(page.getByTestId('show-khqr')).toBeVisible();
 });
 
 test('silently refreshes an expired access token', async ({ page, context }) => {

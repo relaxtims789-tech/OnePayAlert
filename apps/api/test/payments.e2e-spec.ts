@@ -102,7 +102,7 @@ describe('Payments: connections, webhooks, transactions, realtime, push (e2e)', 
   describe('providers & connections', () => {
     it('is honest about which integrations are live', () => {
       expect(provider('ABA').integrationAvailable).toBe(false);
-      expect(provider('BAKONG_KHQR').integrationAvailable).toBe(false);
+      expect(provider('BAKONG_KHQR').integrationAvailable).toBe(true); // KHQR collection, confirmed via the Bakong Open API
       expect(provider('ONEPAY_WEBHOOK').integrationAvailable).toBe(true);
       expect(provider('DEMO_SIMULATOR')).toMatchObject({ isDemo: true, integrationAvailable: true });
     });

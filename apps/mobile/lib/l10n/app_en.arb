@@ -91,5 +91,49 @@
   "roleAdmin": "Admin",
   "roleManager": "Manager",
   "roleAccountant": "Accountant",
-  "roleCashier": "Cashier"
+  "roleCashier": "Cashier",
+  "collect": "Collect",
+  "collectTitle": "Collect payment",
+  "collectAccount": "Receiving account",
+  "collectAmount": "Amount ({currency})",
+  "@collectAmount": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "collectShowQr": "Show KHQR",
+  "collectScanHint": "Scan with any Cambodian bank app",
+  "collectWaiting": "Waiting for the customer to pay…",
+  "collectExpiresIn": "Expires in {time}",
+  "@collectExpiresIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "collectCancel": "Cancel",
+  "collectNew": "New payment",
+  "collectPaid": "Payment received",
+  "collectPaidFrom": "From {account}",
+  "@collectPaidFrom": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "collectExpired": "Code expired",
+  "collectExpiredHint": "No payment arrived in time. Create a new code if the customer still wants to pay.",
+  "collectCanceled": "Code canceled",
+  "collectReview": "Payment needs checking",
+  "collectReviewHint": "Bakong reported a payment that does not match this request. It was not counted; check it in your bank app.",
+  "collectDemoMode": "Demo mode: Bakong is simulated, no real money moves.",
+  "collectSimulatePaid": "Customer paid (demo)",
+  "collectNotAvailable": "KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.",
+  "collectNoAccount": "No Bakong KHQR account is connected yet. The owner can connect one in the web dashboard.",
+  "collectAmountInvalid": "Enter a valid amount",
+  "collectAmountInvalidKhr": "Enter a whole riel amount"
 }

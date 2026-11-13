@@ -202,4 +202,84 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get roleCashier => 'បេឡាករ';
+
+  @override
+  String get collect => 'ទទួលប្រាក់';
+
+  @override
+  String get collectTitle => 'ទទួលការទូទាត់';
+
+  @override
+  String get collectAccount => 'គណនីទទួលប្រាក់';
+
+  @override
+  String collectAmount(String currency) {
+    return 'ចំនួនទឹកប្រាក់ ($currency)';
+  }
+
+  @override
+  String get collectShowQr => 'បង្ហាញ KHQR';
+
+  @override
+  String get collectScanHint => 'ស្កេនដោយកម្មវិធីធនាគារណាមួយក្នុងកម្ពុជា';
+
+  @override
+  String get collectWaiting => 'កំពុងរង់ចាំអតិថិជនបង់ប្រាក់…';
+
+  @override
+  String collectExpiresIn(String time) {
+    return 'ផុតកំណត់ក្នុង $time';
+  }
+
+  @override
+  String get collectCancel => 'បោះបង់';
+
+  @override
+  String get collectNew => 'ការទូទាត់ថ្មី';
+
+  @override
+  String get collectPaid => 'បានទទួលប្រាក់';
+
+  @override
+  String collectPaidFrom(String account) {
+    return 'ពី $account';
+  }
+
+  @override
+  String get collectExpired => 'លេខកូដផុតកំណត់';
+
+  @override
+  String get collectExpiredHint =>
+      'មិនមានការទូទាត់ទាន់ពេលទេ។ សូមបង្កើតលេខកូដថ្មី ប្រសិនបើអតិថិជននៅតែចង់បង់។';
+
+  @override
+  String get collectCanceled => 'បានបោះបង់លេខកូដ';
+
+  @override
+  String get collectReview => 'ការទូទាត់ត្រូវពិនិត្យ';
+
+  @override
+  String get collectReviewHint =>
+      'Bakong រាយការណ៍ការទូទាត់ដែលមិនត្រូវនឹងសំណើនេះ។ វាមិនត្រូវបានរាប់ទេ សូមពិនិត្យក្នុងកម្មវិធីធនាគាររបស់អ្នក។';
+
+  @override
+  String get collectDemoMode =>
+      'របៀបសាកល្បង៖ Bakong ត្រូវបានក្លែងធ្វើ គ្មានប្រាក់ពិតផ្លាស់ទីទេ។';
+
+  @override
+  String get collectSimulatePaid => 'អតិថិជនបានបង់ (សាកល្បង)';
+
+  @override
+  String get collectNotAvailable =>
+      'ការទូទាត់ KHQR មិនទាន់អាចប្រើបានទេ។ MysoftKH ត្រូវភ្ជាប់ប្រព័ន្ធទៅ Bakong ជាមុនសិន។';
+
+  @override
+  String get collectNoAccount =>
+      'មិនទាន់មានគណនី Bakong KHQR ភ្ជាប់នៅឡើយទេ។ ម្ចាស់អាចភ្ជាប់វានៅក្នុងផ្ទាំងគ្រប់គ្រងលើវេប។';
+
+  @override
+  String get collectAmountInvalid => 'សូមបញ្ចូលចំនួនទឹកប្រាក់ត្រឹមត្រូវ';
+
+  @override
+  String get collectAmountInvalidKhr => 'សូមបញ្ចូលចំនួនរៀលគត់';
 }

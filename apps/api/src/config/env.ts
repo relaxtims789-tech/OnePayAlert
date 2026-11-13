@@ -59,6 +59,14 @@ export const envSchema = z.object({
    * rate limits: with a proxy and 0, every user would share the proxy's address and one rate limit.
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  /**
+   * Bakong Open API (KHQR). The token comes from the NBC developer portal (renew it before it
+   * expires). Without it, demo/development simulate Bakong and production cannot collect KHQR.
+   */
+  BAKONG_API_URL: z.string().url().default('https://api-bakong.nbc.gov.kh'),
+  BAKONG_API_TOKEN: z.string().min(20).optional(),
+  /** How often pending KHQR payments are checked with Bakong (ms). 0 disables (tests poll directly). */
+  KHQR_POLL_INTERVAL_MS: z.coerce.number().int().min(0).default(3000),
   /** How often trials, renewals and grace periods are checked. 0 disables the job (tests run it directly). */
   BILLING_JOB_INTERVAL_SECONDS: z.coerce.number().int().min(0).default(900),
   CORS_ORIGINS: z

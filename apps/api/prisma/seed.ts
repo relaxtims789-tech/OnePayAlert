@@ -17,7 +17,7 @@ type ProviderSeed = {
 };
 
 const PROVIDERS: ProviderSeed[] = [
-  { code: 'BAKONG_KHQR', name: 'Bakong KHQR', type: 'GATEWAY', adapterKey: null },
+  { code: 'BAKONG_KHQR', name: 'Bakong KHQR', type: 'GATEWAY', adapterKey: 'BAKONG_KHQR' },
   { code: 'ABA', name: 'ABA Bank', type: 'BANK', adapterKey: null },
   { code: 'ACLEDA', name: 'ACLEDA Bank', type: 'BANK', adapterKey: null },
   { code: 'WING', name: 'Wing Bank', type: 'WALLET', adapterKey: null },

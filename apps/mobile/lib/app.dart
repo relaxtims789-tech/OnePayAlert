@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
 import 'state/app_state.dart';
+import 'ui/collect_screen.dart';
 import 'ui/home_screen.dart';
 import 'ui/login_screen.dart';
 import 'ui/settings_screen.dart';
@@ -58,28 +59,45 @@ class _AuthGate extends ConsumerWidget {
   }
 }
 
-class _Shell extends StatefulWidget {
+class _Shell extends ConsumerStatefulWidget {
   const _Shell();
   @override
-  State<_Shell> createState() => _ShellState();
+  ConsumerState<_Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<_Shell> {
+class _ShellState extends ConsumerState<_Shell> {
   int _index = 0;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    // Collecting with KHQR is for members allowed to take payments (not e.g. accountants).
+    final canCollect = ref.watch(sessionProvider.select((s) => s.value?.can('payment.collect') ?? false));
+    final tabs = <(Widget, NavigationDestination)>[
+      (const HomeScreen(), NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home_rounded), label: t.home)),
+      if (canCollect)
+        (
+          const CollectScreen(),
+          NavigationDestination(
+            key: const Key('nav-collect'),
+            icon: const Icon(Icons.qr_code_2_outlined),
+            selectedIcon: const Icon(Icons.qr_code_2_rounded),
+            label: t.collect,
+          ),
+        ),
+      (
+        const TransactionsScreen(),
+        NavigationDestination(icon: const Icon(Icons.receipt_long_outlined), selectedIcon: const Icon(Icons.receipt_long_rounded), label: t.transactions),
+      ),
+      (const SettingsScreen(), NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings_rounded), label: t.settings)),
+    ];
+    final index = _index.clamp(0, tabs.length - 1);
     return Scaffold(
-      body: IndexedStack(index: _index, children: const [HomeScreen(), TransactionsScreen(), SettingsScreen()]),
+      body: IndexedStack(index: index, children: [for (final tab in tabs) tab.$1]),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
+        selectedIndex: index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home_rounded), label: t.home),
-          NavigationDestination(icon: const Icon(Icons.receipt_long_outlined), selectedIcon: const Icon(Icons.receipt_long_rounded), label: t.transactions),
-          NavigationDestination(icon: const Icon(Icons.settings_outlined), selectedIcon: const Icon(Icons.settings_rounded), label: t.settings),
-        ],
+        destinations: [for (final tab in tabs) tab.$2],
       ),
     );
   }

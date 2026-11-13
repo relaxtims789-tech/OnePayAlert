@@ -127,6 +127,14 @@ export const ADAPTERS: Readonly<Record<string, ProviderAdapter>> = {
     verifySignature: verifyOnePayV1,
     parse: parseOnePayV1,
   },
+  // Confirmed by polling Bakong (no inbound webhooks); the poller hands over a v1-shaped event.
+  [AdapterKey.BAKONG_KHQR]: {
+    key: AdapterKey.BAKONG_KHQR,
+    acceptsPublicWebhooks: false,
+    demoOnly: false,
+    verifySignature: () => false,
+    parse: parseOnePayV1,
+  },
   [AdapterKey.SIMULATOR]: {
     key: AdapterKey.SIMULATOR,
     acceptsPublicWebhooks: false,
@@ -151,10 +159,15 @@ export function sanitizeForStorage(payload: unknown): unknown {
   return payload;
 }
 
-/** "001234567" -> "•••• 4567". Full account numbers are never stored. */
+/**
+ * "001234567" -> "•••• 4567"; Bakong IDs "chan_sophea@aclb" -> "ch•••@aclb" (the last four characters
+ * of a Bakong ID are just the bank code). Full account numbers are never stored.
+ */
 export function maskAccount(account: string): string {
-  const digits = account.replace(/\s+/g, '');
-  return digits.length <= 4 ? '••••' : `•••• ${digits.slice(-4)}`;
+  const compact = account.replace(/\s+/g, '');
+  const bakong = /^([^@]+)@([a-z0-9]{2,8})$/i.exec(compact);
+  if (bakong) return `${bakong[1]!.length > 4 ? bakong[1]!.slice(0, 2) : ''}•••@${bakong[2]!.toLowerCase()}`;
+  return compact.length <= 4 ? '••••' : `•••• ${compact.slice(-4)}`;
 }
 
 /** Secrets are bound to their connection id (AES-GCM AAD) so ciphertexts cannot be swapped between rows. */

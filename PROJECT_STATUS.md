@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-12 — end of Phase 8_
+_Last updated: 2026-11-13 — Bakong KHQR collection_
 
 ## Phase overview
 
@@ -17,10 +17,59 @@ _Last updated: 2026-11-12 — end of Phase 8_
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | ✅ **Done** |
 | 7 | Soundbox devices over EMQX MQTT | ✅ **Done** (verified with the simulator; no physical device yet) |
 | 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ✅ **Done** (CI not yet run on GitHub) |
+| 9 | Bakong KHQR collection: show a KHQR code, payment confirmed with the Bakong Open API | ✅ **Built** (tested against recorded responses and a fake Bakong server; **not yet run against the real Bakong API**, which needs a token) |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 64 shared + 8 web-core + 28 API + 5 merchant-web + 6 admin-web unit tests, **91 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **25 browser e2e** (14 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **23 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 72 shared + 8 web-core + 42 API + 5 merchant-web + 6 admin-web unit tests, **99 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **26 browser e2e** (15 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **29 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Bakong KHQR collection: what was built
+
+The first real payment-provider integration. A cashier types an amount, the customer scans the KHQR code with **any Cambodian bank app**, and the payment is confirmed with Bakong (the National Bank of Cambodia's system), then announced like every other payment: live feed, push, voice and soundbox.
+
+### How it works
+1. **Connect a Bakong account** (dashboard → Bank connections → Bakong KHQR): the merchant's Bakong account id (`shop@aclb`, as shown in their bank app) and the name customers see (Latin letters, up to 25, as KHQR requires). With a Bakong token the API checks the account exists (`/v1/check_bakong_account`). Money goes straight from customer to merchant; One PayAlert never holds it.
+2. **Show a code** (`POST /khqr/charges`, dashboard **Collect payment**, mobile **Collect** tab): a dynamic KHQR for the exact amount, valid 5 minutes, with a unique bill number (`OPA…`) and the outlet as store label. USD with up to 2 decimals; KHR in whole riel.
+3. **Confirmation**: a poller asks Bakong every 3 seconds about all open codes at once (`/v1/check_transaction_by_md5_list`, 50 per call, one API instance at a time via a Redis lock), then fetches the paid one's details (`/v1/check_transaction_by_md5`). A payment arriving up to 60 seconds after expiry still counts.
+4. **Checks before it counts**: amount, currency and receiving account must match the code. If not, the code goes to **REVIEW**: no alert, not counted, and the merchant is told to check their bank app.
+5. **Recorded through the normal pipeline** (`IngestionService`, idempotent on the Bakong hash), so reports, plan limits, realtime, push and soundboxes need no special case. The payer shows as `ch•••@aclb` (Bakong ids are masked by name, not by their last 4 characters, which are just the bank code).
+
+### Encoder
+`apps/api/src/khqr/khqr-encoder.ts` writes the EMVCo/KHQR payload and CRC-16 itself (no runtime dependency). Tests prove it produces **byte-for-byte the same string** as NBC's official `bakong-khqr` SDK for USD, KHR, small and static amounts; the SDK is a test-only dependency (it ships an old axios). A code shown on the Android emulator was decoded from a screenshot and accepted by the official SDK.
+
+### Three modes, never faked in production
+| Mode | When | Behaviour |
+|---|---|---|
+| `live` | `BAKONG_API_TOKEN` set | Real Bakong Open API. |
+| `simulated` | no token, outside production | Demo: a **"Customer paid (demo)"** button; payments are marked demo (`isSimulated`) everywhere. |
+| `off` | no token in production | Collect explains KHQR is not available yet. Nothing is simulated. |
+
+### Permissions
+New permission **`payment.collect`**: owner, admin, manager and **cashier** (not accountant). `GET /khqr/accounts` lists the Bakong accounts a member may collect into, so cashiers can collect without seeing bank connections. Outlet-restricted staff collect only for their own outlets.
+
+### Bugs found by running it
+- **Cashiers' Collect page would never load**: it listed accounts from `bank-connections`, which cashiers may not read. Fixed with `GET /khqr/accounts` (covered by API and browser tests).
+- **Mobile: signing out showed "Your session has ended"**: the Collect tab's setup query re-ran without a token and its 401 looked like an expired session. Found on the emulator, fixed, and covered by a test.
+- **Payer shown as `•••• bkrt`**: masking took the last 4 characters of the Bakong id, i.e. the bank code. Fixed.
+
+### Tests (all passing)
+- Encoder against the official SDK; Bakong client against recorded responses (paid, not found, 401 vs 5xx, batch, account check, string amounts).
+- **8 API e2e** with the simulated Bakong and with a **fake Bakong HTTP server** (bearer token, account check, poller, real non-demo payment): QR validity, idempotent payment, poller, mismatch → REVIEW, expiry and grace, cancel, cashier/accountant/other-company access, account listing.
+- Browser: an owner connects a Bakong account, shows a KHQR for $7.50, the demo customer pays, and the payment appears in Transactions; a cashier can reach Collect. Mobile: 6 widget/unit tests.
+- Checked by hand in the dashboard (Khmer) and on the Android emulator (Khmer): code, countdown, demo payment, alert notification, result screen, sign-out.
+
+### Configuration
+`BAKONG_API_TOKEN` (from api-bakong.nbc.gov.kh; it expires and must be renewed), `BAKONG_API_URL` (default `https://api-bakong.nbc.gov.kh`), `KHQR_POLL_INTERVAL_MS` (default 3000; 0 turns the poller off, as in tests). Added to `deploy/compose.yaml` and the env examples.
+
+### Known gaps
+- **Not yet run against the real Bakong API.** Everything is built to its documented responses and tested against a fake server; the first real token will show whether anything differs (for example error codes or amount formats).
+- Bakong's token **expires**; there is no reminder yet. When it is rejected, polling logs errors and codes stay pending.
+- The **KHQR card design is approximate** (red header, no official KHQR logo asset); check it against NBC's brand guidelines before launch.
+- Codes are confirmed by **polling** (about 3 s). Bakong offers no merchant webhook for this.
+- No refunds through Bakong; a REVIEW payment is resolved in the merchant's bank app.
+- iOS still not built (Phase 5 gap).
 
 ---
 
@@ -387,6 +436,7 @@ A sweeper re-publishes events that are stuck in `RECEIVED` (lost message or tran
 | Realtime | Socket.IO namespace `/realtime`, `auth: { token }`. Events: `transaction.created`, `transaction.updated`, `session.expired` |
 
 ### Honest integration status
+- _Update: Bakong KHQR is now integrated (see "Bakong KHQR collection" above)._
 - **No bank adapter is live yet.** ABA, ACLEDA, Wing, Canadia, Prince and Bakong KHQR are listed with `integrationAvailable: false`. Their connections stay `PENDING` with an explanatory message. Each one needs that institution's API access agreement and sandbox credentials. After that, a new `ProviderAdapter` plugs in without other pipeline changes.
 - **Live today:** `ONEPAY_WEBHOOK_V1`, a standard signed webhook that any gateway or middleware can implement.
 - **Demo simulator** (`DEMO_SIMULATOR`) runs through the same pipeline. Its transactions carry `isSimulated: true`, and push titles start with `[DEMO]`. Four layers stop it in production: the seed doesn't create it, the catalogue hides it, the API refuses to create or simulate, and the worker rejects simulator events.

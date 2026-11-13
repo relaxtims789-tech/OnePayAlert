@@ -82,3 +82,11 @@ Put the broker certificate in `deploy/certs/mqtt/fullchain.pem` and `privkey.pem
 the same ACME account), set `MQTT_URL=mqtt://emqx:1883`, `MQTT_PASSWORD`, `MQTT_HOOK_SECRET` and
 `EMQX_DASHBOARD_PASSWORD`, and start with `--profile soundbox`. Devices connect to
 `mqtts://<host>:8883` (see `docs/SOUNDBOX_PROTOCOL.md`).
+
+## Bakong KHQR
+
+Set `BAKONG_API_TOKEN` (register at https://api-bakong.nbc.gov.kh) and restart the API. The token
+expires: renew it before then, or new KHQR payments stay pending (the API logs every rejected call).
+Without a token, production has KHQR switched off and the demo environment simulates Bakong.
+`KHQR_POLL_INTERVAL_MS` (default 3000) sets how often open codes are checked; any number of API
+instances is fine, since one Redis lock lets only one of them poll at a time.

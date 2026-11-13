@@ -4,6 +4,7 @@ import type { AuthTokens } from '@onepay/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { MQTT_BRIDGE, type MqttBridge } from '../src/devices/mqtt.bridge';
+import { BAKONG_CLIENT, type BakongClient } from '../src/khqr/bakong.client';
 import { PUSH_SENDER, type PushSender } from '../src/notifications/push.sender';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { configureApp } from '../src/setup';
@@ -11,10 +12,13 @@ import { configureApp } from '../src/setup';
 export const API = '/api/v1';
 export const PASSWORD = 'Str0ngPassw0rd';
 
-export async function createTestApp(opts: { pushSender?: PushSender; mqttBridge?: MqttBridge } = {}): Promise<INestApplication> {
+export async function createTestApp(
+  opts: { pushSender?: PushSender; mqttBridge?: MqttBridge; bakongClient?: BakongClient } = {},
+): Promise<INestApplication> {
   let builder = Test.createTestingModule({ imports: [AppModule] });
   if (opts.pushSender) builder = builder.overrideProvider(PUSH_SENDER).useValue(opts.pushSender);
   if (opts.mqttBridge) builder = builder.overrideProvider(MQTT_BRIDGE).useValue(opts.mqttBridge);
+  if (opts.bakongClient) builder = builder.overrideProvider(BAKONG_CLIENT).useValue(opts.bakongClient);
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: ['error'], rawBody: true });
   await configureApp(app);

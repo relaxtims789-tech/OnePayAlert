@@ -1,6 +1,6 @@
 # One PayAlert mobile (`apps/mobile`)
 
-Flutter app (Android and iOS) for merchants and their staff: a live payment feed, spoken and notified payment alerts, today's totals, transaction history, and an outlet filter. Languages: Khmer, English and Chinese.
+Flutter app (Android and iOS) for merchants and their staff: a live payment feed, spoken and notified payment alerts, today's totals, transaction history, an outlet filter, and collecting payments with a Bakong KHQR code. Languages: Khmer, English and Chinese.
 
 ## Run
 ```powershell

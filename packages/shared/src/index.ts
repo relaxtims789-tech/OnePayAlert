@@ -9,3 +9,4 @@ export * from './billing';
 export * from './reports';
 export * from './errors';
 export * from './devices';
+export * from './khqr';

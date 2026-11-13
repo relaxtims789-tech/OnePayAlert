@@ -6,6 +6,8 @@ export const AdapterKey = {
   ONEPAY_WEBHOOK_V1: 'ONEPAY_WEBHOOK_V1',
   /** Demo-only simulator. Rejected by the API when APP_ENV=production. */
   SIMULATOR: 'SIMULATOR',
+  /** Bakong KHQR: dynamic QR codes, payment confirmed by polling the Bakong Open API. */
+  BAKONG_KHQR: 'BAKONG_KHQR',
 } as const;
 export type AdapterKey = (typeof AdapterKey)[keyof typeof AdapterKey];
 
@@ -32,6 +34,8 @@ export interface BankConnectionDto {
   displayName: string;
   accountName: string | null;
   accountNumberMasked: string | null;
+  /** Non-secret provider account id, e.g. the Bakong account "shop@aclb". */
+  externalAccountId: string | null;
   currency: Currency;
   status: BankConnectionStatus;
   /** Credentials are write-only: only whether they are set is ever returned. */
@@ -97,6 +101,8 @@ export interface TransactionSummaryDto {
 export const RealtimeEvent = {
   TRANSACTION_CREATED: 'transaction.created',
   TRANSACTION_UPDATED: 'transaction.updated',
+  /** A KHQR payment request was paid, expired, canceled or flagged (payload: KhqrChargeDto). */
+  KHQR_CHARGE_UPDATED: 'khqr.charge.updated',
   /** A soundbox came online/offline or reported telemetry (payload: DeviceDto). */
   DEVICE_UPDATED: 'device.updated',
 } as const;

@@ -35,6 +35,30 @@ class Repository {
     return Page.fromJson(Map<String, dynamic>.from(body as Map), Txn.fromJson);
   }
 
+  /// live (real Bakong), simulated (demo build of the API) or off.
+  Future<String> khqrMode() async => (Map<String, dynamic>.from(await api.request('GET', 'khqr/status') as Map))['mode'] as String;
+
+  Future<List<KhqrAccount>> khqrAccounts() async => ((await api.request('GET', 'khqr/accounts')) as List)
+      .map((e) => KhqrAccount.fromJson(Map<String, dynamic>.from(e as Map)))
+      .toList();
+
+  Future<KhqrCharge> createKhqr({required String accountId, required String amount, String? outletId}) async => KhqrCharge.fromJson(
+      Map<String, dynamic>.from(await api.request('POST', 'khqr/charges', data: {
+        'bankConnectionId': accountId,
+        'amount': amount,
+        'outletId': ?outletId,
+      }) as Map));
+
+  Future<KhqrCharge> khqrCharge(String id) async =>
+      KhqrCharge.fromJson(Map<String, dynamic>.from(await api.request('GET', 'khqr/charges/$id') as Map));
+
+  Future<KhqrCharge> cancelKhqr(String id) async =>
+      KhqrCharge.fromJson(Map<String, dynamic>.from(await api.request('POST', 'khqr/charges/$id/cancel') as Map));
+
+  /// Demo builds of the API only: act as the customer paying.
+  Future<KhqrCharge> simulateKhqrPaid(String id) async =>
+      KhqrCharge.fromJson(Map<String, dynamic>.from(await api.request('POST', 'khqr/charges/$id/simulate-paid') as Map));
+
   Future<void> registerPushToken(String token, String platform) =>
       api.request('PUT', 'me/push-tokens', data: {'token': token, 'platform': platform});
 

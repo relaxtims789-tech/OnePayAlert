@@ -37,6 +37,9 @@ x-api-env: &api-env
   MQTT_USERNAME: onepay-api
   MQTT_PASSWORD: ${MQTT_PASSWORD:-}
   MQTT_HOOK_SECRET: ${MQTT_HOOK_SECRET:-}
+  BAKONG_API_URL: ${BAKONG_API_URL:-https://api-bakong.nbc.gov.kh}
+  BAKONG_API_TOKEN: ${BAKONG_API_TOKEN:-}
+  KHQR_POLL_INTERVAL_MS: ${KHQR_POLL_INTERVAL_MS:-3000}
 
 services:
   postgres:

@@ -15,6 +15,8 @@ export const Permission = {
   BANK_CONNECTION_READ: 'bank_connection.read',
   BANK_CONNECTION_MANAGE: 'bank_connection.manage',
   TRANSACTION_READ: 'transaction.read',
+  /** Show a KHQR code to a customer and take the payment (cashiers included). */
+  PAYMENT_COLLECT: 'payment.collect',
   DEVICE_READ: 'device.read',
   DEVICE_MANAGE: 'device.manage',
   REPORT_READ: 'report.read',
@@ -44,6 +46,7 @@ const ALL_TENANT: Permission[] = [
   P.BANK_CONNECTION_READ,
   P.BANK_CONNECTION_MANAGE,
   P.TRANSACTION_READ,
+  P.PAYMENT_COLLECT,
   P.DEVICE_READ,
   P.DEVICE_MANAGE,
   P.REPORT_READ,
@@ -63,6 +66,7 @@ export const COMPANY_ROLE_PERMISSIONS: Readonly<Record<CompanyRole, readonly Per
     P.EMPLOYEE_READ,
     P.BANK_CONNECTION_READ,
     P.TRANSACTION_READ,
+    P.PAYMENT_COLLECT,
     P.DEVICE_READ,
     P.DEVICE_MANAGE,
     P.REPORT_READ,
@@ -75,7 +79,7 @@ export const COMPANY_ROLE_PERMISSIONS: Readonly<Record<CompanyRole, readonly Per
     P.REPORT_READ,
     P.SUBSCRIPTION_READ,
   ],
-  [CompanyRole.CASHIER]: [P.COMPANY_READ, P.OUTLET_READ, P.TRANSACTION_READ, P.DEVICE_READ],
+  [CompanyRole.CASHIER]: [P.COMPANY_READ, P.OUTLET_READ, P.TRANSACTION_READ, P.PAYMENT_COLLECT, P.DEVICE_READ],
 };
 
 export const PLATFORM_ROLE_PERMISSIONS: Readonly<Record<PlatformRole, readonly Permission[]>> = {

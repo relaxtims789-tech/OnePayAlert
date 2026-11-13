@@ -178,3 +178,71 @@ class Outlet {
   factory Outlet.fromJson(Map<String, dynamic> j) =>
       Outlet(id: j['id'] as String, name: j['name'] as String, code: j['code'] as String);
 }
+
+/// A Bakong account the member can show a KHQR code for (GET /khqr/accounts).
+class KhqrAccount {
+  const KhqrAccount({
+    required this.id,
+    required this.displayName,
+    required this.accountId,
+    required this.merchantName,
+    required this.currency,
+    required this.outletId,
+  });
+  final String id;
+  final String displayName;
+  final String accountId;
+  final String merchantName;
+  final String currency;
+  final String? outletId;
+
+  factory KhqrAccount.fromJson(Map<String, dynamic> j) => KhqrAccount(
+        id: j['id'] as String,
+        displayName: j['displayName'] as String,
+        accountId: j['accountId'] as String,
+        merchantName: j['merchantName'] as String? ?? '',
+        currency: j['currency'] as String,
+        outletId: j['outletId'] as String?,
+      );
+}
+
+/// A KHQR payment request. [status] is PENDING, PAID, EXPIRED, CANCELED or REVIEW.
+class KhqrCharge {
+  const KhqrCharge({
+    required this.id,
+    required this.reference,
+    required this.amountMinor,
+    required this.currency,
+    required this.qr,
+    required this.status,
+    required this.merchantName,
+    required this.expiresAt,
+    required this.payerAccount,
+    required this.simulated,
+  });
+  final String id;
+  final String reference;
+  final int amountMinor;
+  final String currency;
+  final String qr;
+  final String status;
+  final String merchantName;
+  final DateTime expiresAt;
+  final String? payerAccount;
+  final bool simulated;
+
+  bool get isPending => status == 'PENDING';
+
+  factory KhqrCharge.fromJson(Map<String, dynamic> j) => KhqrCharge(
+        id: j['id'] as String,
+        reference: j['reference'] as String,
+        amountMinor: (j['amountMinor'] as num).toInt(),
+        currency: j['currency'] as String,
+        qr: j['qr'] as String,
+        status: j['status'] as String,
+        merchantName: j['merchantName'] as String? ?? '',
+        expiresAt: DateTime.parse(j['expiresAt'] as String),
+        payerAccount: j['payerAccount'] as String?,
+        simulated: j['simulated'] as bool? ?? false,
+      );
+}

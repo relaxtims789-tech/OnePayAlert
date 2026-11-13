@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  QrCode,
   Settings,
   Speaker,
   Store,
@@ -30,6 +31,7 @@ import { RealtimeProvider } from '@/lib/realtime';
 
 const NAV: { href: string; label: MessageKey; icon: typeof LayoutDashboard; perm?: Permission }[] = [
   { href: '/dashboard', label: 'nav.dashboard', icon: LayoutDashboard },
+  { href: '/collect', label: 'nav.collect', icon: QrCode, perm: Permission.PAYMENT_COLLECT },
   { href: '/transactions', label: 'nav.transactions', icon: ArrowLeftRight, perm: Permission.TRANSACTION_READ },
   { href: '/bank-connections', label: 'nav.bankConnections', icon: Landmark, perm: Permission.BANK_CONNECTION_READ },
   { href: '/outlets', label: 'nav.outlets', icon: Store, perm: Permission.OUTLET_READ },

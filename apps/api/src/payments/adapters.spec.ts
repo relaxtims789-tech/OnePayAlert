@@ -44,5 +44,7 @@ describe('ONEPAY_WEBHOOK_V1 adapter', () => {
   it('masks account numbers', () => {
     expect(maskAccount('1234567890')).toBe('•••• 7890');
     expect(maskAccount('123')).toBe('••••');
+    expect(maskAccount('chan_sophea@aclb')).toBe('ch•••@aclb');
+    expect(maskAccount('abc@ABAA')).toBe('•••@abaa');
   });
 });

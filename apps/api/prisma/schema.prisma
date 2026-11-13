@@ -123,6 +123,18 @@ enum PaymentMethod {
 enum WebhookEventSource {
   WEBHOOK
   SIMULATOR
+  /// Confirmed by the API polling the provider (Bakong KHQR).
+  POLLER
+}
+
+/// A dynamic KHQR payment request shown to a customer at the counter.
+enum KhqrChargeStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELED
+  /// Bakong reported a payment that does not match the request (amount, currency or account).
+  REVIEW
 }
 
 enum WebhookEventStatus {
@@ -159,6 +171,7 @@ model Company {
   transactions    Transaction[]
   devices         Device[]
   subscriptions   Subscription[]
+  khqrCharges     KhqrCharge[]
   invoices        Invoice[]
   auditLogs       AuditLog[]
 
@@ -182,6 +195,7 @@ model Outlet {
   bankConnections   BankConnection[]
   transactions      Transaction[]
   devices           Device[]
+  khqrCharges       KhqrCharge[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -325,6 +339,8 @@ model BankConnection {
   displayName             String               @map("display_name") @db.VarChar(120)
   accountName             String?              @map("account_name") @db.VarChar(160)
   accountNumberMasked     String?              @map("account_number_masked") @db.VarChar(40)
+  /// Provider account identifier that is not secret, e.g. a Bakong account ID "shop@aclb".
+  externalAccountId       String?              @map("external_account_id") @db.VarChar(64)
   currency                Currency
   status                  BankConnectionStatus @default(PENDING)
   credentialCiphertext    String?              @map("credential_ciphertext")
@@ -340,6 +356,7 @@ model BankConnection {
   provider      PaymentProvider @relation(fields: [providerId], references: [id])
   transactions  Transaction[]
   webhookEvents WebhookEvent[]
+  khqrCharges   KhqrCharge[]
 
   @@index([companyId])
   @@index([providerId])
@@ -541,4 +558,39 @@ model AuditLog {
   @@index([companyId, createdAt(sort: Desc)])
   @@index([actorUserId])
   @@map("audit_logs")
+}
+
+/// A one-off KHQR code for a given amount. Bakong is polled by its MD5 until it is paid or expires;
+/// the payment then enters the normal ingestion pipeline (alerts, reports).
+model KhqrCharge {
+  id               String           @id @default(uuid()) @db.Uuid
+  companyId        String           @map("company_id") @db.Uuid
+  bankConnectionId String           @map("bank_connection_id") @db.Uuid
+  outletId         String?          @map("outlet_id") @db.Uuid
+  createdById      String?          @map("created_by_id") @db.Uuid
+  /// Short reference printed in the QR (bill number) and on receipts.
+  reference        String           @db.VarChar(25)
+  amountMinor      BigInt           @map("amount_minor")
+  currency         Currency
+  qr               String
+  md5              String           @unique @db.Char(32)
+  status           KhqrChargeStatus @default(PENDING)
+  expiresAt        DateTime         @map("expires_at") @db.Timestamptz(6)
+  paidAt           DateTime?        @map("paid_at") @db.Timestamptz(6)
+  /// Bakong transaction hash, once paid.
+  providerTxnId    String?          @map("provider_txn_id") @db.VarChar(128)
+  payerAccount     String?          @map("payer_account") @db.VarChar(64)
+  reviewReason     String?          @map("review_reason") @db.VarChar(300)
+  simulated        Boolean          @default(false)
+  lastCheckedAt    DateTime?        @map("last_checked_at") @db.Timestamptz(6)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankConnection BankConnection @relation(fields: [bankConnectionId], references: [id], onDelete: Cascade)
+  outlet         Outlet?        @relation(fields: [outletId], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@index([companyId, createdAt(sort: Desc)])
+  @@map("khqr_charges")
 }

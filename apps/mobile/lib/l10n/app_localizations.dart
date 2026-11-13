@@ -465,6 +465,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cashier'**
   String get roleCashier;
+
+  /// No description provided for @collect.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect'**
+  String get collect;
+
+  /// No description provided for @collectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Collect payment'**
+  String get collectTitle;
+
+  /// No description provided for @collectAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving account'**
+  String get collectAccount;
+
+  /// No description provided for @collectAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount ({currency})'**
+  String collectAmount(String currency);
+
+  /// No description provided for @collectShowQr.
+  ///
+  /// In en, this message translates to:
+  /// **'Show KHQR'**
+  String get collectShowQr;
+
+  /// No description provided for @collectScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with any Cambodian bank app'**
+  String get collectScanHint;
+
+  /// No description provided for @collectWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the customer to pay…'**
+  String get collectWaiting;
+
+  /// No description provided for @collectExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in {time}'**
+  String collectExpiresIn(String time);
+
+  /// No description provided for @collectCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get collectCancel;
+
+  /// No description provided for @collectNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New payment'**
+  String get collectNew;
+
+  /// No description provided for @collectPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received'**
+  String get collectPaid;
+
+  /// No description provided for @collectPaidFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From {account}'**
+  String collectPaidFrom(String account);
+
+  /// No description provided for @collectExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Code expired'**
+  String get collectExpired;
+
+  /// No description provided for @collectExpiredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No payment arrived in time. Create a new code if the customer still wants to pay.'**
+  String get collectExpiredHint;
+
+  /// No description provided for @collectCanceled.
+  ///
+  /// In en, this message translates to:
+  /// **'Code canceled'**
+  String get collectCanceled;
+
+  /// No description provided for @collectReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment needs checking'**
+  String get collectReview;
+
+  /// No description provided for @collectReviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Bakong reported a payment that does not match this request. It was not counted; check it in your bank app.'**
+  String get collectReviewHint;
+
+  /// No description provided for @collectDemoMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode: Bakong is simulated, no real money moves.'**
+  String get collectDemoMode;
+
+  /// No description provided for @collectSimulatePaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer paid (demo)'**
+  String get collectSimulatePaid;
+
+  /// No description provided for @collectNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.'**
+  String get collectNotAvailable;
+
+  /// No description provided for @collectNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'No Bakong KHQR account is connected yet. The owner can connect one in the web dashboard.'**
+  String get collectNoAccount;
+
+  /// No description provided for @collectAmountInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid amount'**
+  String get collectAmountInvalid;
+
+  /// No description provided for @collectAmountInvalidKhr.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole riel amount'**
+  String get collectAmountInvalidKhr;
 }
 
 class _AppLocalizationsDelegate

@@ -1,3 +1,4 @@
+import { AdapterKey } from '@onepay/shared';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ALLOWED_STATUS_TRANSITIONS, type TransactionStatus } from '@onepay/shared';
 import { Prisma } from '@prisma/client';
@@ -109,7 +110,10 @@ export class IngestionWorker implements OnModuleInit, OnModuleDestroy {
 
     try {
       if (!adapter) throw new PermanentError('Provider has no integration');
-      if (ev.source === 'SIMULATOR' && (!conn.provider.isDemo || !this.config.allowsSimulatedPayments)) {
+      // Simulated events: only outside production, on demo providers, or for KHQR codes paid with the
+      // simulated Bakong (demo/dev without a Bakong token). Always flagged as demo payments below.
+      const simulatedKhqr = adapter.key === AdapterKey.BAKONG_KHQR;
+      if (ev.source === 'SIMULATOR' && ((!conn.provider.isDemo && !simulatedKhqr) || !this.config.allowsSimulatedPayments)) {
         throw new PermanentError('Simulated events are not allowed here');
       }
       let n;

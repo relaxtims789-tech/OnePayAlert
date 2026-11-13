@@ -41,6 +41,10 @@ export class CreateBankConnectionDto {
   @IsOptional() @IsUUID()
   outletId?: string;
 
+  @ApiPropertyOptional({ example: 'sokha_coffee@aclb', description: 'Bakong KHQR: the Bakong account that receives payments' })
+  @IsOptional() @IsString() @MaxLength(64)
+  externalAccountId?: string;
+
   @ApiPropertyOptional({ description: 'Write-only API credentials; encrypted at rest, never returned' })
   @IsOptional() @IsObject()
   credentials?: CredentialsInput;

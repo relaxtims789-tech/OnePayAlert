@@ -1,6 +1,12 @@
+import { AdapterKey, BAKONG_ACCOUNT_PATTERN } from '@onepay/shared';
+import { apiError } from '../common/api-error';
+import { BAKONG_CLIENT, type BakongClient } from '../khqr/bakong.client';
+import { khqrSafeText } from '../khqr/khqr-encoder';
 import {
   BadRequestException,
   ForbiddenException,
+  HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -57,6 +63,7 @@ export class BankConnectionsService {
     private readonly audit: AuditService,
     private readonly ingestion: IngestionService,
     private readonly entitlements: EntitlementsService,
+    @Inject(BAKONG_CLIENT) private readonly bakong: BakongClient,
   ) {}
 
   webhookUrl(c: ConnectionWithProvider): string | null {
@@ -80,6 +87,7 @@ export class BankConnectionsService {
       displayName: c.displayName,
       accountName: c.accountName,
       accountNumberMasked: c.accountNumberMasked,
+      externalAccountId: c.externalAccountId,
       currency: c.currency,
       status: c.status,
       hasCredentials: c.credentialCiphertext !== null,
@@ -144,9 +152,26 @@ export class BankConnectionsService {
     if (dto.outletId) await this.assertOutlet(user.companyId, dto.outletId);
     const credentials = dto.credentials ? validateCredentials(dto.credentials) : null;
 
+    // Bakong KHQR: payments go straight to the merchant's Bakong account; we only need its id
+    // and the Latin name shown to customers in their bank app.
+    const isKhqr = adapter?.key === AdapterKey.BAKONG_KHQR;
+    let externalAccountId: string | null = null;
+    let accountName = dto.accountName ?? null;
+    if (isKhqr) {
+      externalAccountId = (dto.externalAccountId ?? '').trim().toLowerCase();
+      if (!BAKONG_ACCOUNT_PATTERN.test(externalAccountId)) throw apiError(HttpStatus.BAD_REQUEST, 'BAKONG_ACCOUNT_INVALID');
+      accountName = khqrSafeText(dto.accountName ?? '', 25);
+      if (!accountName || accountName !== (dto.accountName ?? '').trim()) {
+        throw apiError(HttpStatus.BAD_REQUEST, 'KHQR_MERCHANT_NAME_INVALID');
+      }
+      if ((await this.bakong.accountExists(externalAccountId)) === false) {
+        throw apiError(HttpStatus.BAD_REQUEST, 'BAKONG_ACCOUNT_NOT_FOUND');
+      }
+    }
+
     const id = randomUUID();
     const webhookSecret = adapter?.acceptsPublicWebhooks ? newWebhookSecret() : null;
-    const status = !adapter ? 'PENDING' : adapter.demoOnly ? 'ACTIVE' : 'PENDING';
+    const status = !adapter ? 'PENDING' : adapter.demoOnly || isKhqr ? 'ACTIVE' : 'PENDING';
     const lastError = adapter
       ? null
       : `Live integration with ${provider.name} is not available yet. The connection will activate once it is.`;
@@ -160,7 +185,8 @@ export class BankConnectionsService {
           outletId: dto.outletId ?? null,
           providerId: provider.id,
           displayName: dto.displayName,
-          accountName: dto.accountName ?? null,
+          accountName,
+          externalAccountId,
           accountNumberMasked: dto.accountNumber ? maskAccount(dto.accountNumber) : null,
           currency: dto.currency,
           status,

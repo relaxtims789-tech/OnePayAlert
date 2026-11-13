@@ -1,3 +1,4 @@
+import type { BakongClient } from '../khqr/bakong.client';
 import type { EntitlementsService } from '../billing/entitlements.service';
 import { ForbiddenException } from '@nestjs/common';
 import type { AuditService } from '../audit/audit.service';
@@ -27,6 +28,7 @@ function service(isProduction: boolean) {
     {} as AuditService,
     ingestion,
     {} as EntitlementsService,
+    { mode: 'simulated', accountExists: async () => null } as unknown as BakongClient,
   );
   return { svc, prisma, ingestion };
 }

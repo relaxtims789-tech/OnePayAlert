@@ -194,6 +194,44 @@ export const API_ERRORS = {
     zh: '该设备已被 MysoftKH 停用，请联系客服。',
   },
 
+  // ── KHQR collection
+  KHQR_NOT_AVAILABLE: {
+    en: 'KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.',
+    km: 'ការទូទាត់ KHQR មិនទាន់អាចប្រើបានទេ។ MysoftKH ត្រូវភ្ជាប់ប្រព័ន្ធទៅ Bakong ជាមុនសិន។',
+    zh: 'KHQR 收款暂不可用，需先由 MysoftKH 将平台接入 Bakong。',
+  },
+  KHQR_CONNECTION_REQUIRED: {
+    en: 'Choose an active Bakong KHQR account to collect this payment.',
+    km: 'សូមជ្រើសគណនី Bakong KHQR ដែលសកម្ម ដើម្បីទទួលការទូទាត់នេះ។',
+    zh: '请选择一个有效的 Bakong KHQR 账户来收取此笔款项。',
+  },
+  BAKONG_ACCOUNT_INVALID: {
+    en: 'Enter the Bakong account ID in the form name@bank, for example shop@aclb.',
+    km: 'សូមបញ្ចូលអត្តសញ្ញាណគណនី Bakong ជាទម្រង់ name@bank ឧ. shop@aclb។',
+    zh: '请按 name@bank 格式输入 Bakong 账户 ID，例如 shop@aclb。',
+  },
+  BAKONG_ACCOUNT_NOT_FOUND: {
+    en: 'Bakong does not know this account ID. Check it in your bank app.',
+    km: 'Bakong រកមិនឃើញអត្តសញ្ញាណគណនីនេះទេ។ សូមពិនិត្យក្នុងកម្មវិធីធនាគាររបស់អ្នក។',
+    zh: 'Bakong 找不到该账户 ID，请在您的银行 App 中核对。',
+  },
+  KHQR_MERCHANT_NAME_INVALID: {
+    en: 'The name shown in the QR code must be 1-25 Latin letters, digits or spaces.',
+    km: 'ឈ្មោះដែលបង្ហាញក្នុង QR ត្រូវតែជាអក្សរឡាតាំង លេខ ឬដកឃ្លា ចំនួន 1-25 តួ។',
+    zh: '二维码中显示的名称须为 1-25 个拉丁字母、数字或空格。',
+  },
+  KHQR_AMOUNT_INVALID: {
+    en: 'Enter an amount greater than zero (riel without decimals, dollars with at most 2 decimals).',
+    km: 'សូមបញ្ចូលចំនួនទឹកប្រាក់ធំជាងសូន្យ (រៀលគ្មានខ្ទង់ទសភាគ ដុល្លារមិនលើសពី 2 ខ្ទង់ទសភាគ)។',
+    zh: '请输入大于零的金额（瑞尔不含小数，美元最多两位小数）。',
+  },
+  KHQR_CHARGE_NOT_FOUND: { en: 'Payment request not found', km: 'រកមិនឃើញសំណើទូទាត់', zh: '未找到收款请求' },
+  KHQR_CHARGE_NOT_PENDING: {
+    en: 'This payment request is no longer waiting for payment',
+    km: 'សំណើទូទាត់នេះលែងរង់ចាំការទូទាត់ហើយ',
+    zh: '此收款请求已不在等待付款状态',
+  },
+
   // ── Generic
   VALIDATION_FAILED: {
     en: 'Some of the information is not valid. Please check it and try again.',

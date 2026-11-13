@@ -202,4 +202,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roleCashier => 'Cashier';
+
+  @override
+  String get collect => 'Collect';
+
+  @override
+  String get collectTitle => 'Collect payment';
+
+  @override
+  String get collectAccount => 'Receiving account';
+
+  @override
+  String collectAmount(String currency) {
+    return 'Amount ($currency)';
+  }
+
+  @override
+  String get collectShowQr => 'Show KHQR';
+
+  @override
+  String get collectScanHint => 'Scan with any Cambodian bank app';
+
+  @override
+  String get collectWaiting => 'Waiting for the customer to pay…';
+
+  @override
+  String collectExpiresIn(String time) {
+    return 'Expires in $time';
+  }
+
+  @override
+  String get collectCancel => 'Cancel';
+
+  @override
+  String get collectNew => 'New payment';
+
+  @override
+  String get collectPaid => 'Payment received';
+
+  @override
+  String collectPaidFrom(String account) {
+    return 'From $account';
+  }
+
+  @override
+  String get collectExpired => 'Code expired';
+
+  @override
+  String get collectExpiredHint =>
+      'No payment arrived in time. Create a new code if the customer still wants to pay.';
+
+  @override
+  String get collectCanceled => 'Code canceled';
+
+  @override
+  String get collectReview => 'Payment needs checking';
+
+  @override
+  String get collectReviewHint =>
+      'Bakong reported a payment that does not match this request. It was not counted; check it in your bank app.';
+
+  @override
+  String get collectDemoMode =>
+      'Demo mode: Bakong is simulated, no real money moves.';
+
+  @override
+  String get collectSimulatePaid => 'Customer paid (demo)';
+
+  @override
+  String get collectNotAvailable =>
+      'KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.';
+
+  @override
+  String get collectNoAccount =>
+      'No Bakong KHQR account is connected yet. The owner can connect one in the web dashboard.';
+
+  @override
+  String get collectAmountInvalid => 'Enter a valid amount';
+
+  @override
+  String get collectAmountInvalidKhr => 'Enter a whole riel amount';
 }

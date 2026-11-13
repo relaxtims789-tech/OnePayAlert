@@ -39,6 +39,7 @@ import { BankConnectionsService, toProviderDto } from './bank-connections.servic
 import { IngestionService } from './ingestion.service';
 import { IngestionWorker } from './ingestion.worker';
 import { BillingModule } from '../billing/billing.module';
+import { BakongModule } from '../khqr/bakong.module';
 
 @ApiTags('Payment providers')
 @ApiBearerAuth()
@@ -219,9 +220,9 @@ export class WebhooksController {
 }
 
 @Module({
-  imports: [NotificationsModule, BillingModule],
+  imports: [NotificationsModule, BillingModule, BakongModule],
   controllers: [PaymentProvidersController, PlatformProvidersController, BankConnectionsController, WebhooksController],
   providers: [BankConnectionsService, IngestionService, IngestionWorker],
-  exports: [IngestionWorker],
+  exports: [IngestionWorker, IngestionService],
 })
 export class PaymentsModule {}

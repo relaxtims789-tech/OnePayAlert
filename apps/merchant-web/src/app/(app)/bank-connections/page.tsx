@@ -57,7 +57,7 @@ function BankConnectionsInner() {
 
   const [connectOpen, setConnectOpen] = useState(false);
   const [provider, setProvider] = useState<PaymentProviderDto | null>(null);
-  const [draft, setDraft] = useState({ displayName: '', accountName: '', accountNumber: '', currency: 'USD' as 'USD' | 'KHR', outletId: '' });
+  const [draft, setDraft] = useState({ displayName: '', accountName: '', accountNumber: '', externalAccountId: '', currency: 'USD' as 'USD' | 'KHR', outletId: '' });
   const [formError, setFormError] = useState<string | null>(null);
   const [secret, setSecret] = useState<BankConnectionWithSecretDto | null>(null);
   const [confirm, setConfirm] = useState<{ kind: 'rotate' | 'disconnect'; conn: BankConnectionDto } | null>(null);
@@ -84,6 +84,7 @@ function BankConnectionsInner() {
         displayName: draft.displayName,
         accountName: draft.accountName || undefined,
         accountNumber: draft.accountNumber || undefined,
+        externalAccountId: draft.externalAccountId || undefined,
         currency: draft.currency,
         outletId: draft.outletId || undefined,
       }),
@@ -123,7 +124,7 @@ function BankConnectionsInner() {
   function startConnect() {
     setProvider(null);
     setFormError(null);
-    setDraft({ displayName: '', accountName: '', accountNumber: '', currency: 'USD', outletId: '' });
+    setDraft({ displayName: '', accountName: '', accountNumber: '', externalAccountId: '', currency: 'USD', outletId: '' });
     setConnectOpen(true);
   }
 
@@ -174,7 +175,7 @@ function BankConnectionsInner() {
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm">
                   <dt className="text-ink-3">{t('banks.account')}</dt>
-                  <dd className="text-right text-ink">{c.accountNumberMasked ?? '—'}</dd>
+                  <dd className="text-right text-ink">{c.externalAccountId ?? c.accountNumberMasked ?? '—'}</dd>
                   <dt className="text-ink-3">{t('common.currency')}</dt>
                   <dd className="text-right text-ink">{c.currency}</dd>
                   <dt className="text-ink-3">{t('common.outlet')}</dt>
@@ -304,7 +305,25 @@ function BankConnectionsInner() {
                 )}
               </Field>
             </div>
-            {!provider.isDemo ? (
+            {provider.code === 'BAKONG_KHQR' ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label={t('banks.bakongAccount')} hint={t('banks.bakongAccountHint')}>
+                  {(p) => (
+                    <Input
+                      {...p}
+                      autoComplete="off"
+                      placeholder="shop@aclb"
+                      value={draft.externalAccountId}
+                      onChange={(e) => setDraft({ ...draft, externalAccountId: e.target.value.trim().toLowerCase() })}
+                      data-testid="bakong-account"
+                    />
+                  )}
+                </Field>
+                <Field label={t('banks.qrName')} hint={t('banks.qrNameHint')}>
+                  {(p) => <Input {...p} maxLength={25} value={draft.accountName} onChange={(e) => setDraft({ ...draft, accountName: e.target.value })} data-testid="qr-name" />}
+                </Field>
+              </div>
+            ) : !provider.isDemo ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={`${t('banks.accountName')} (${t('common.optional')})`}>
                   {(p) => <Input {...p} value={draft.accountName} onChange={(e) => setDraft({ ...draft, accountName: e.target.value })} />}

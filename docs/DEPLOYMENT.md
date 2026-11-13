@@ -86,7 +86,9 @@ the same ACME account), set `MQTT_URL=mqtt://emqx:1883`, `MQTT_PASSWORD`, `MQTT_
 ## Bakong KHQR
 
 Set `BAKONG_API_TOKEN` (register at https://api-bakong.nbc.gov.kh) and restart the API. The token
-expires: renew it before then, or new KHQR payments stay pending (the API logs every rejected call).
+expires: renew it before then, or new KHQR payments stay pending. Admin console → System health shows
+the expiry date and whether Bakong accepts the token (it warns 14 days ahead); for alerting, scrape
+`onepay_bakong_token_expiry_seconds` and `onepay_dependency_up{dependency="bakong"}`.
 Without a token, production has KHQR switched off and the demo environment simulates Bakong.
 `KHQR_POLL_INTERVAL_MS` (default 3000) sets how often open codes are checked; any number of API
 instances is fine, since one Redis lock lets only one of them poll at a time.

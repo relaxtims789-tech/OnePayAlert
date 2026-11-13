@@ -28,12 +28,26 @@ export class BakongError extends Error {
 
 export interface BakongClient {
   readonly mode: 'live' | 'simulated' | 'off';
+  /** When the API token expires, if it says (JWT `exp`); null when unknown. */
+  readonly tokenExpiresAt?: Date | null;
   /** null = not paid (yet). Throws BakongError on transport/auth problems. */
   checkMd5(md5: string): Promise<BakongTransaction | null>;
   /** MD5s Bakong reports as paid, among up to 50. */
   paidAmong(md5s: string[]): Promise<Set<string>>;
   /** Whether Bakong knows the account (null = cannot tell, e.g. simulated). */
   accountExists(accountId: string): Promise<boolean | null>;
+}
+
+/** The `exp` of a JWT-shaped token, without verifying it (Bakong tokens are JWTs). */
+export function tokenExpiry(token: string): Date | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1]!, 'base64url').toString('utf8')) as { exp?: unknown };
+    return typeof payload.exp === 'number' && Number.isFinite(payload.exp) ? new Date(payload.exp * 1000) : null;
+  } catch {
+    return null;
+  }
 }
 
 const asText = (v: unknown): string | null => (v === null || v === undefined || v === '' ? null : String(v));
@@ -62,12 +76,15 @@ export function parseBakongTransaction(data: Record<string, unknown>): BakongTra
 export class LiveBakongClient implements BakongClient {
   readonly mode = 'live' as const;
   private readonly logger = new Logger('Bakong');
+  readonly tokenExpiresAt: Date | null;
 
   constructor(
     private readonly baseUrl: string,
     private readonly token: string,
     private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
+  ) {
+    this.tokenExpiresAt = tokenExpiry(token);
+  }
 
   private async post(path: string, body: unknown): Promise<Record<string, unknown>> {
     let res: Response;

@@ -17,6 +17,7 @@ import { RedisService } from '../infra/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { minorToNumber } from '../transactions/transaction.mapper';
 import { BUSINESS_TIMEZONE } from '../transactions/transactions.module';
+import { BakongHealthService } from '../khqr/bakong-health.service';
 import { PlatformCompaniesService } from './platform-companies.service';
 import type { CreatePlanDto, PlatformAuditQueryDto, UpdatePlanDto } from './platform.dto';
 
@@ -56,6 +57,7 @@ export class PlatformOpsService {
     private readonly redis: RedisService,
     private readonly queue: IngestQueue,
     private readonly config: AppConfig,
+    private readonly bakongHealth: BakongHealthService,
   ) {}
 
   // ───────────── Overview ─────────────
@@ -234,8 +236,11 @@ export class PlatformOpsService {
           ])
         : [0, 0, 0, 0, []];
 
+    const khqr = await this.bakongHealth.health();
+    const healthy = redis === 'up' && queue === 'up' && stuck === 0 && khqr.status !== 'error';
     return {
-      status: database === 'down' ? 'error' : redis === 'up' && queue === 'up' && stuck === 0 ? 'ok' : 'degraded',
+      status: database === 'down' ? 'error' : healthy ? 'ok' : 'degraded',
+      khqr,
       database,
       redis,
       queue,

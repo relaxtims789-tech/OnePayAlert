@@ -1,3 +1,4 @@
+import type { BakongHealthService } from '../khqr/bakong-health.service';
 import type { BakongClient } from '../khqr/bakong.client';
 import type { EntitlementsService } from '../billing/entitlements.service';
 import { ForbiddenException } from '@nestjs/common';
@@ -29,6 +30,7 @@ function service(isProduction: boolean) {
     ingestion,
     {} as EntitlementsService,
     { mode: 'simulated', accountExists: async () => null } as unknown as BakongClient,
+    { track: <T>(call: () => Promise<T>) => call() } as unknown as BakongHealthService,
   );
   return { svc, prisma, ingestion };
 }

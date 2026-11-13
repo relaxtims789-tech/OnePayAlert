@@ -16,7 +16,7 @@ _Last updated: 2026-11-13 — Bakong KHQR collection_
 | 5 | Flutter mobile app (Android/iOS) | ✅ **Done** (Android verified; iOS not yet built) |
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | ✅ **Done** |
 | 7 | Soundbox devices over EMQX MQTT | ✅ **Done** (verified with the simulator; no physical device yet) |
-| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ✅ **Done** (CI not yet run on GitHub) |
+| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ✅ **Done** (CI runs on GitHub; browser-suite fix awaiting its first run) |
 | 9 | Bakong KHQR collection: show a KHQR code, payment confirmed with the Bakong Open API | ✅ **Built** (tested against recorded responses and a fake Bakong server; **not yet run against the real Bakong API**, which needs a token) |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
@@ -115,7 +115,7 @@ Checked: token handling (short-lived access tokens, rotating refresh tokens with
 - **25 browser e2e (14 merchant + 11 admin, Playwright in Chrome)**, with the same role.
 
 ### Phase 8 known gaps
-- **CI has not run on GitHub yet**; the first push will show whether the hosted runners need adjustments.
+- _Update 2026-11-13:_ CI has now run on GitHub. Every job passed except the browser suites, which failed before any test: Playwright starts the API before its global setup, so on the runner's fresh database the API's role did not exist yet. The database is now prepared before the API starts (`apps/api/test/prepare-db.mjs`); all e2e suites pass locally from an empty database. To be confirmed by the next CI run.
 - **No linter** (ESLint) yet: strict TypeScript checking runs everywhere, but style/lint rules are not enforced.
 - **Content Security Policy** is served by Caddy but was not exercised in a browser locally (the browser here does not trust Caddy's local test certificate). Check the dashboards once on the real demo domain.
 - **Images are built locally**; pushing them to a registry (and signing them) is not set up.

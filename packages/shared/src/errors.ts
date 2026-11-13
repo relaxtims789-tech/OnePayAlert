@@ -22,6 +22,11 @@ export const API_ERRORS = {
     zh: '邮箱或密码错误',
   },
   ACCOUNT_DISABLED: { en: 'This account is disabled', km: 'គណនីនេះត្រូវបានបិទ', zh: '此账户已被停用' },
+  ACCOUNT_LOCKED: {
+    en: 'Too many wrong passwords. This account is locked for {minutes} min. Try again later, or reset your password.',
+    km: 'បញ្ចូលពាក្យសម្ងាត់ខុសច្រើនដងពេក។ គណនីនេះត្រូវបានចាក់សោរយៈពេល {minutes} នាទី។ សូមព្យាយាមម្ដងទៀតពេលក្រោយ ឬកំណត់ពាក្យសម្ងាត់ឡើងវិញ។',
+    zh: '密码错误次数过多，此账户已被锁定 {minutes} 分钟。请稍后再试，或重置密码。',
+  },
   COMPANY_SUSPENDED: {
     en: 'This company account is suspended. Contact MysoftKH support.',
     km: 'គណនីក្រុមហ៊ុននេះត្រូវបានផ្អាក។ សូមទាក់ទងផ្នែកជំនួយរបស់ MysoftKH។',

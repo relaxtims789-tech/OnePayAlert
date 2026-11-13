@@ -4,6 +4,7 @@ import { AppConfig } from '../config/app-config.service';
 import { AccountService } from './account.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { LoginLockoutService } from './login-lockout.service';
 import { PasswordService } from './password.service';
 import { PrincipalService } from './principal.service';
 import { TokenService } from './token.service';
@@ -21,7 +22,7 @@ import { TokenService } from './token.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AccountService, PasswordService, TokenService, PrincipalService],
+  providers: [AuthService, AccountService, PasswordService, TokenService, PrincipalService, LoginLockoutService],
   exports: [JwtModule, PasswordService, PrincipalService],
 })
 export class AuthModule {}

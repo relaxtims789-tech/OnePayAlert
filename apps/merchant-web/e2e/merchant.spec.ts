@@ -57,6 +57,32 @@ test('rejects bad credentials and does not reveal accounts on password reset', a
   await expect(page.getByText(/If an account exists for this email/)).toBeVisible();
 });
 
+test('locks an account after repeated wrong passwords and says how to get back in', async ({ page, request }) => {
+  // A throwaway merchant, so the shared owner account stays usable.
+  const email = `locked.${stamp}@e2e.onepay.local`;
+  const reg = await request.post(`${API_URL}/auth/register`, { data: { fullName: 'Lock Test', email, password: owner.password, companyName: `Lock Test ${stamp}` } });
+  expect(reg.ok()).toBeTruthy();
+
+  await english(page.context());
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(email);
+  const password = page.getByLabel('Password');
+  for (let i = 0; i < 4; i++) {
+    await password.fill(`Wr0ngPassword${i}`);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: 'Invalid email or password' })).toBeVisible();
+  }
+  await password.fill('Wr0ngPassword4');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'This account is locked for 15 min' })).toBeVisible();
+
+  // Even the right password is refused while locked.
+  await password.fill(owner.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'reset your password' })).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
 /** What MysoftKH staff do in the admin console once the transfer arrives — through the real API. */
 async function confirmPayment(request: APIRequestContext, invoiceNumber: string) {
   const login = await request.post(`${API_URL}/auth/login`, { data: { email: BILLING_STAFF.email, password: BILLING_STAFF.password } });

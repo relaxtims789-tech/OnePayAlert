@@ -5,6 +5,7 @@ import { AppConfig } from '../config/app-config.service';
 import { MailService, passwordResetEmail } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ChangePasswordDto, UpdateProfileDto } from './dto';
+import { LoginLockoutService } from './login-lockout.service';
 import { PasswordService } from './password.service';
 import { PrincipalService } from './principal.service';
 
@@ -23,6 +24,7 @@ export class AccountService {
     private readonly mail: MailService,
     private readonly config: AppConfig,
     private readonly audit: AuditService,
+    private readonly lockout: LoginLockoutService,
   ) {}
 
   async updateProfile(userId: string, dto: UpdateProfileDto): Promise<void> {
@@ -106,6 +108,9 @@ export class AccountService {
       });
     });
     await this.principals.invalidateUser(record.userId);
+    // Resetting the password is the way back in for a locked-out owner.
+    const user = await this.prisma.user.findUnique({ where: { id: record.userId }, select: { email: true } });
+    if (user) await this.lockout.clear(user.email);
     await this.audit.log({
       companyId: null,
       actorUserId: record.userId,

@@ -44,7 +44,7 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 
 ## Phase 8: Hardening & pilot ✅
 - Production Dockerfiles, CI (typecheck, unit, e2e, images), Postgres RLS, backups, structured logging and metrics, a dependency audit, a security review, and separate demo and production deployments.
-- Runbook: [DEPLOYMENT.md](DEPLOYMENT.md). Still open: first CI run on GitHub, ESLint, image registry, high availability, per-account lockout (see PROJECT_STATUS.md).
+- Runbook: [DEPLOYMENT.md](DEPLOYMENT.md). CI is green on GitHub and sign-in has a per-account lockout. Still open: ESLint, image registry, high availability (see PROJECT_STATUS.md).
 
 ## Phase 9: Bakong KHQR collection ✅
 - Dynamic KHQR codes for an exact amount (web and mobile), confirmed with the Bakong Open API and recorded through the normal payment pipeline. Mismatched payments are held for review. Simulated outside production when there is no Bakong token; off in production without one.

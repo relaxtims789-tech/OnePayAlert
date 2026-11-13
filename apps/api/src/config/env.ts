@@ -59,6 +59,10 @@ export const envSchema = z.object({
    * rate limits: with a proxy and 0, every user would share the proxy's address and one rate limit.
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  /** Wrong passwords allowed per account within LOGIN_LOCK_MINUTES before it is locked. */
+  LOGIN_MAX_FAILURES: z.coerce.number().int().min(3).max(50).default(5),
+  /** How long an account stays locked after too many wrong passwords (also the counting window). */
+  LOGIN_LOCK_MINUTES: z.coerce.number().int().min(1).max(1440).default(15),
   /**
    * Bakong Open API (KHQR). The token comes from the NBC developer portal (renew it before it
    * expires). Without it, demo/development simulate Bakong and production cannot collect KHQR.

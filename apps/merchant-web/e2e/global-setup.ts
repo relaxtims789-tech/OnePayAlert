@@ -1,9 +1,9 @@
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BILLING_STAFF } from './fixtures';
 
-/** Applies migrations + reference data to the dedicated test database (non-destructive) and seeds the billing staff account. */
+/** Seeds the billing staff account in the dedicated test database. */
 export default function globalSetup(): void {
   const apiDir = join(__dirname, '..', '..', 'api');
   const env: NodeJS.ProcessEnv = { ...process.env };
@@ -15,11 +15,7 @@ export default function globalSetup(): void {
   if (!/\/[a-z0-9_]*_test(\?|$)/.test(env.DATABASE_URL ?? '')) {
     throw new Error('Refusing to run e2e: DATABASE_URL in apps/api/.env.test must point at a *_test database');
   }
-  // Owner runs migrations and seed; the API under test uses the plain app role (row-level security).
-  const owner = { ...env, DATABASE_URL: env.MIGRATION_DATABASE_URL ?? env.DATABASE_URL };
-  execSync('npx prisma migrate deploy', { cwd: apiDir, env: owner, stdio: 'pipe' });
-  execSync('npx ts-node prisma/seed.ts', { cwd: apiDir, env: { ...owner, SEED_SUPER_ADMIN_EMAIL: '', SEED_SUPER_ADMIN_PASSWORD: '' }, stdio: 'pipe' });
-  execSync('node prisma/app-role.mjs', { cwd: apiDir, env, stdio: 'pipe' });
+  // Migrations, reference data and the app role were applied before the API started (test/prepare-db.mjs).
   const seedStaff = join(__dirname, '..', '..', 'admin-web', 'e2e', 'seed-staff.mjs');
   execFileSync(process.execPath, [seedStaff, JSON.stringify([BILLING_STAFF])], { cwd: apiDir, env, stdio: 'pipe' });
 }

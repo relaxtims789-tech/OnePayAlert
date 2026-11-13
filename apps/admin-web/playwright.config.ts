@@ -24,7 +24,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'npx nest build -p tsconfig.e2e.json && node dist-e2e/main.js',
+      // The database is prepared here, not in globalSetup: Playwright starts web servers first,
+      // and on a fresh database the API's role would not exist yet.
+      command: 'node test/prepare-db.mjs && npx nest build -p tsconfig.e2e.json && node dist-e2e/main.js',
       cwd: '../api',
       url: `http://localhost:${API_PORT}/api/v1/health`,
       env: { APP_ENV: 'test', PORT: String(API_PORT) },

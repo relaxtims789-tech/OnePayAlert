@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-13 — Bakong KHQR collection_
+_Last updated: 2026-11-13 — CI green on GitHub, per-account sign-in lockout_
 
 ## Phase overview
 
@@ -16,12 +16,31 @@ _Last updated: 2026-11-13 — Bakong KHQR collection_
 | 5 | Flutter mobile app (Android/iOS) | ✅ **Done** (Android verified; iOS not yet built) |
 | 6 | Reports, subscriptions & plan limits, i18n content (km/en/zh) | ✅ **Done** |
 | 7 | Soundbox devices over EMQX MQTT | ✅ **Done** (verified with the simulator; no physical device yet) |
-| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ✅ **Done** (CI runs on GitHub; browser-suite fix awaiting its first run) |
+| 8 | Hardening & pilot readiness (Docker images, CI, observability, backups, pen-test fixes) | ✅ **Done** (CI green on GitHub) |
 | 9 | Bakong KHQR collection: show a KHQR code, payment confirmed with the Bakong Open API | ✅ **Built** (tested against recorded responses and a fake Bakong server; **not yet run against the real Bakong API**, which needs a token) |
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 72 shared + 8 web-core + 42 API + 5 merchant-web + 6 admin-web unit tests, **99 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **26 browser e2e** (15 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **29 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 73 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **104 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **27 browser e2e** (16 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **29 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Sign-in lockout per account
+
+Closes the Phase 8 gap "rate limits are per IP only". Guessing one account's password from many addresses no longer works.
+
+- **Rule:** 5 wrong passwords within 15 minutes lock the account for 15 minutes (`LOGIN_MAX_FAILURES`, `LOGIN_LOCK_MINUTES`). The lock is checked **before** the password, so while locked even the right password is refused. The per-IP limits stay as they were.
+- **No account discovery:** unknown emails are counted and locked exactly like real ones, with the same answer. Redis stores a hash of the email, never the address.
+- **Way back in:** the lock expires by itself, and a **password reset unlocks at once**. A successful sign-in clears the count.
+- **The owner is told:** the locking attempt sends an email in the user's language ("Your account was locked", with a reset link) and writes an `auth.locked` audit entry. The message on screen (`ACCOUNT_LOCKED`, HTTP 429) is translated (km/en/zh) and shown as-is by both dashboards and the mobile app; no client changes were needed.
+- **Covers every sign-in:** merchants, staff and MysoftKH staff all sign in through `POST /auth/login`.
+- **If Redis is down,** sign-in keeps working (the per-IP limits still apply) and a warning is logged.
+
+Tests: 2 unit (counting, case-insensitivity, Redis down), 5 API e2e (lock after 5, right password refused, Khmer message and email, audit, unknown emails, reset count on success, expiry, password reset), 1 browser test.
+
+Also: **CI is green on GitHub** for the first time (all five jobs). The browser suites had failed on every run because Playwright starts the API before its global setup, so on the runner's empty database the API's role did not exist yet; the database is now prepared before the API starts (`apps/api/test/prepare-db.mjs`).
+
+Known gaps: no way for MysoftKH staff to unlock an account by hand (the owner resets their password or waits); counts live in Redis, so flushing Redis clears them.
 
 ---
 
@@ -115,13 +134,13 @@ Checked: token handling (short-lived access tokens, rotating refresh tokens with
 - **25 browser e2e (14 merchant + 11 admin, Playwright in Chrome)**, with the same role.
 
 ### Phase 8 known gaps
-- _Update 2026-11-13:_ CI has now run on GitHub. Every job passed except the browser suites, which failed before any test: Playwright starts the API before its global setup, so on the runner's fresh database the API's role did not exist yet. The database is now prepared before the API starts (`apps/api/test/prepare-db.mjs`); all e2e suites pass locally from an empty database. To be confirmed by the next CI run.
+- _Update 2026-11-13:_ CI has run on GitHub and is green (the browser suites needed the test database prepared before the API starts).
 - **No linter** (ESLint) yet: strict TypeScript checking runs everywhere, but style/lint rules are not enforced.
 - **Content Security Policy** is served by Caddy but was not exercised in a browser locally (the browser here does not trust Caddy's local test certificate). Check the dashboards once on the real demo domain.
 - **Images are built locally**; pushing them to a registry (and signing them) is not set up.
 - **Single host**: no high availability or managed database; the in-memory rate-limit store is per API instance.
 - **Off-site backup copy** is described, not automated.
-- **Rate limits are per IP only**; there is no per-account lockout after repeated failed sign-ins.
+- ~~Rate limits are per IP only~~: per-account lockout added (see "Sign-in lockout per account").
 - **Kicking a disabled soundbox immediately** (EMQX management API) is still open from Phase 7.
 - The `migrate` image is large (≈3 GB, full build toolchain); it only runs at release time.
 

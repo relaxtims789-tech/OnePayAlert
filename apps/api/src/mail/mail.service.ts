@@ -63,6 +63,41 @@ const RESET_COPY: Record<Locale, { subject: string; intro: string; action: strin
   },
 };
 
+const LOCKED_COPY: Record<Locale, { subject: string; intro: (m: number) => string; action: string; ignore: string }> = {
+  en: {
+    subject: 'Your One PayAlert account was locked',
+    intro: (m) => `Someone entered a wrong password for your account several times, so sign-in is locked for ${m} minutes.`,
+    action: 'Reset password',
+    ignore: 'If this was you, wait and try again, or reset your password to sign in now. If it was not you, reset your password.',
+  },
+  km: {
+    subject: 'គណនី One PayAlert របស់អ្នកត្រូវបានចាក់សោ',
+    intro: (m) => `មាននរណាម្នាក់បានបញ្ចូលពាក្យសម្ងាត់ខុសសម្រាប់គណនីរបស់អ្នកច្រើនដង ដូច្នេះការចូលគណនីត្រូវបានចាក់សោរយៈពេល ${m} នាទី។`,
+    action: 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
+    ignore: 'ប្រសិនបើជាអ្នក សូមរង់ចាំ ហើយព្យាយាមម្ដងទៀត ឬកំណត់ពាក្យសម្ងាត់ឡើងវិញដើម្បីចូលភ្លាមៗ។ ប្រសិនបើមិនមែនជាអ្នកទេ សូមកំណត់ពាក្យសម្ងាត់ឡើងវិញ។',
+  },
+  zh: {
+    subject: '您的 One PayAlert 账户已被锁定',
+    intro: (m) => `有人多次输入了您账户的错误密码，因此登录已被锁定 ${m} 分钟。`,
+    action: '重置密码',
+    ignore: '如果是您本人，请稍后再试，或重置密码后立即登录。如果不是您本人，请重置密码。',
+  },
+};
+
+/** Sent when too many wrong passwords lock an account. */
+export function accountLockedEmail(locale: Locale, name: string, minutes: number, link: string): Omit<MailMessage, 'to'> {
+  const c = LOCKED_COPY[locale] ?? LOCKED_COPY.en;
+  const esc = (v: string) => v.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+  return {
+    subject: c.subject,
+    text: `${name},\n\n${c.intro(minutes)}\n\n${c.ignore}\n\n${c.action}: ${link}\n\nOne PayAlert · Mysoftkh`,
+    html:
+      `<div style="font-family:Inter,'Noto Sans Khmer',Arial,sans-serif;max-width:520px;margin:auto;color:#0f172a">` +
+      `<h2 style="color:#0759B8">One PayAlert</h2><p>${esc(name)},</p><p>${esc(c.intro(minutes))}</p><p>${esc(c.ignore)}</p>` +
+      `<p><a href="${esc(link)}" style="display:inline-block;background:#0759B8;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none">${esc(c.action)}</a></p></div>`,
+  };
+}
+
 export function passwordResetEmail(locale: Locale, name: string, link: string): Omit<MailMessage, 'to'> {
   const c = RESET_COPY[locale] ?? RESET_COPY.en;
   const esc = (v: string) => v.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);

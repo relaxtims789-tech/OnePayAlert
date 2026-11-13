@@ -9,12 +9,16 @@ import {
   permissionsFor,
   type AuthTokens,
   type CompanyRole,
+  type Locale,
   type MeResponse,
   type PlatformRole,
 } from '@onepay/shared';
 import { AuditService } from '../audit/audit.service';
+import { AppConfig } from '../config/app-config.service';
+import { MailService, accountLockedEmail } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { LoginDto, RegisterMerchantDto } from './dto';
+import { LoginLockoutService } from './login-lockout.service';
 import { PasswordService } from './password.service';
 import { PrincipalService } from './principal.service';
 import { TokenService } from './token.service';
@@ -40,6 +44,9 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     private readonly principals: PrincipalService,
+    private readonly lockout: LoginLockoutService,
+    private readonly mail: MailService,
+    private readonly config: AppConfig,
   ) {
     this.dummyHash = this.passwords.hash('timing-equaliser-password-0');
   }
@@ -131,6 +138,8 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, client: ClientInfo): Promise<AuthTokens> {
+    // Checked before the password: while locked, even the right password is refused.
+    await this.lockout.assertNotLocked(dto.email);
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
       include: {
@@ -144,10 +153,11 @@ export class AuthService {
 
     if (!user) {
       await this.passwords.verify(await this.dummyHash, dto.password);
-      throw new UnauthorizedException('Invalid email or password');
+      return this.wrongPassword(dto.email, null, client);
     }
     const ok = await this.passwords.verify(user.passwordHash, dto.password);
-    if (!ok) throw new UnauthorizedException('Invalid email or password');
+    if (!ok) return this.wrongPassword(dto.email, user, client);
+    await this.lockout.clear(dto.email);
     if (user.status === 'DISABLED') throw new ForbiddenException('This account is disabled');
 
     let membership = dto.companyId
@@ -183,6 +193,31 @@ export class AuthService {
       ipAddress: client.ip,
     });
     return tokens;
+  }
+
+  /**
+   * Counts a wrong password (unknown emails exactly like real ones) and always throws: invalid
+   * credentials, or ACCOUNT_LOCKED when this attempt reached the limit. A real account's owner is
+   * told by email, and the lock is audited.
+   */
+  private async wrongPassword(
+    email: string,
+    user: { id: string; email: string; fullName: string; locale: string; status: string } | null,
+    client: ClientInfo,
+  ): Promise<never> {
+    if (!(await this.lockout.recordFailure(email))) throw new UnauthorizedException('Invalid email or password');
+    if (user) {
+      await this.audit.log({ companyId: null, actorUserId: user.id, action: 'auth.locked', entityType: 'user', entityId: user.id, ipAddress: client.ip });
+      if (user.status !== 'DISABLED') {
+        const link = `${this.config.get('WEB_APP_URL')}/forgot-password`;
+        try {
+          await this.mail.send({ to: user.email, ...accountLockedEmail(user.locale as Locale, user.fullName, this.lockout.lockMinutes, link) });
+        } catch (e) {
+          this.logger.error(`Account-locked email failed: ${(e as Error).message}`);
+        }
+      }
+    }
+    throw this.lockout.lockedError();
   }
 
   /**

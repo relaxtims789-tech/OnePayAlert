@@ -13,7 +13,7 @@ import { Receipt, Search } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { LiveIndicator } from '@/components/live-indicator';
 import { PageHeader } from '@/components/page-header';
-import { DemoBadge, TxnStatus } from '@/components/status';
+import { DemoBadge, FromPhoneBadge, TxnStatus } from '@/components/status';
 import { api } from '@/lib/api';
 import { dateTime, money, startOfBusinessDay } from '@/lib/format';
 import { errorText, queryKeys, useCan, useOutletOptions } from '@/lib/hooks';
@@ -164,7 +164,8 @@ export default function TransactionsPage() {
                       <p className="text-xs text-ink-3">{txn.reference ?? txn.providerTxnId}</p>
                     </Td>
                     <Td className="text-ink-2">
-                      {connectionName(txn.bankConnectionId) ?? txn.providerCode} {txn.isSimulated ? <DemoBadge /> : null}
+                      {connectionName(txn.bankConnectionId) ?? txn.providerCode} {txn.isSimulated ? <DemoBadge /> : null}{' '}
+                      {txn.verification === 'REPORTED' ? <FromPhoneBadge /> : null}
                     </Td>
                     <Td className="text-ink-2">{outletName(txn.outletId)}</Td>
                     <Td>
@@ -194,6 +195,7 @@ export default function TransactionsPage() {
               <div className="mt-2 flex justify-center gap-2">
                 <TxnStatus status={selected.status} />
                 {selected.isSimulated ? <DemoBadge /> : null}
+                {selected.verification === 'REPORTED' ? <FromPhoneBadge /> : null}
               </div>
             </div>
             <dl className="divide-y divide-line text-sm">
@@ -207,6 +209,7 @@ export default function TransactionsPage() {
               <Row k={t('transactions.occurredAt')} v={dateTime(selected.occurredAt, locale)} />
               <Row k={t('transactions.receivedAt')} v={dateTime(selected.receivedAt, locale)} />
               {selected.isSimulated ? <Row k={t('common.demo')} v={t('transactions.simulated')} /> : null}
+              {selected.verification === 'REPORTED' ? <Row k={t('common.fromPhone')} v={t('transactions.reportedByPhone')} /> : null}
             </dl>
           </div>
         ) : null}

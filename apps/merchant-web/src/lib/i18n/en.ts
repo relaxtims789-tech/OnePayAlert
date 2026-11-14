@@ -38,6 +38,7 @@ export const en = {
     networkError: 'Cannot reach the server. Check your connection and try again.',
     forbidden: 'You do not have permission to do this.',
     notFound: 'Not found.',
+    fromPhone: 'From phone',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -132,6 +133,7 @@ export const en = {
     noOutlet: '—',
     description: 'Description',
     payerAccount: 'Payer account',
+    reportedByPhone: 'Read from a bank app alert on your phone, not confirmed by the bank. Check your bank app if in doubt.',
   },
   status: {
     PENDING: 'Pending',
@@ -230,6 +232,12 @@ export const en = {
     bakongAccountHint: 'As shown in your bank app, e.g. shop@aclb. Payments go straight to this account.',
     qrName: 'Name shown in the QR',
     qrNameHint: 'What customers see in their bank app. Latin letters, digits and spaces, up to 25.',
+    phonesTitle: 'Phones forwarding alerts',
+    phonesEmpty: 'No phone set up yet.',
+    phonesHint: 'Set up in the One PayAlert Android app: Settings → Bank alerts on this phone.',
+    phoneLastSeen: 'Last seen',
+    removePhone: 'Remove',
+    phoneRemoved: 'Phone removed',
   },
   reports: {
     title: 'Reports',
@@ -363,6 +371,8 @@ export const en = {
     emptyHint: 'Add one with the serial number and claim code on its box. It will announce payments as soon as it is online.',
     disabled: 'Disabled by MysoftKH',
     readOnly: 'Only owners, admins and managers can add or change soundboxes.',
+    announceReported: 'Speak payments reported by phone',
+    announceReportedHint: 'Payments read from a bank app alert on a merchant phone. Turn off to announce bank-confirmed payments only.',
   },
   collect: {
     title: 'Collect payment',

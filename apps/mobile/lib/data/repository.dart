@@ -59,6 +59,31 @@ class Repository {
   Future<KhqrCharge> simulateKhqrPaid(String id) async =>
       KhqrCharge.fromJson(Map<String, dynamic>.from(await api.request('POST', 'khqr/charges/$id/simulate-paid') as Map));
 
+  /// Active "Bank alerts on your phone" connections of the company.
+  Future<List<RelayConnection>> relayConnections() async {
+    final body = Map<String, dynamic>.from(await api.request('GET', 'bank-connections', query: {'pageSize': 100}) as Map);
+    return (body['items'] as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .where((c) => (c['provider'] as Map)['code'] == 'PHONE_ALERTS' && c['status'] == 'ACTIVE')
+        .map((c) => RelayConnection(id: c['id'] as String, displayName: c['displayName'] as String, currency: c['currency'] as String))
+        .toList();
+  }
+
+  Future<RelayConnection> createRelayConnection(String currency, String displayName) async {
+    final providers = (await api.request('GET', 'payment-providers') as List).map((e) => Map<String, dynamic>.from(e as Map));
+    final provider = providers.firstWhere((p) => p['code'] == 'PHONE_ALERTS');
+    final c = Map<String, dynamic>.from(await api.request('POST', 'bank-connections',
+        data: {'providerId': provider['id'], 'displayName': displayName, 'currency': currency}) as Map);
+    return RelayConnection(id: c['id'] as String, displayName: c['displayName'] as String, currency: c['currency'] as String);
+  }
+
+  Future<RelayEnrollment> enrollPhone(String connectionId, String name) async {
+    final r = Map<String, dynamic>.from(await api.request('POST', 'relay/phones', data: {'bankConnectionId': connectionId, 'name': name}) as Map);
+    return RelayEnrollment(relayId: r['relayId'] as String, secret: r['secret'] as String);
+  }
+
+  Future<void> revokePhone(String relayId) => api.request('DELETE', 'relay/phones/$relayId');
+
   Future<void> registerPushToken(String token, String platform) =>
       api.request('PUT', 'me/push-tokens', data: {'token': token, 'platform': platform});
 

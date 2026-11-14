@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/config.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_state.dart';
+import 'bank_alerts_screen.dart';
 import 'theme.dart';
 
 const _languages = {'km': 'ខ្មែរ', 'en': 'English', 'zh': '中文'};
@@ -109,6 +111,20 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ]),
         ),
+        // Phone bank alerts: Android only, set up by owners and admins.
+        if (defaultTargetPlatform == TargetPlatform.android && me.can('bank_connection.manage')) ...[
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              key: const Key('bank-alerts-tile'),
+              leading: const Icon(Icons.phonelink_ring_rounded, color: Brand.primary),
+              title: Text(t.bankAlerts, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(t.bankAlertsHint),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const BankAlertsScreen())),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         Card(
           child: ListTile(

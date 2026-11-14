@@ -54,6 +54,7 @@ UTF-8 JSON. Unknown `type` values and unknown fields must be ignored (the platfo
   "locale": "km",
   "volume": 80,
   "simulated": false,
+  "verified": true,
   "occurredAt": "2026-11-12T05:08:27.000Z"
 }
 ```
@@ -61,6 +62,7 @@ UTF-8 JSON. Unknown `type` values and unknown fields must be ignored (the platfo
 - `amount` is a plain decimal string (USD: 2 decimals; KHR: whole riel with `.00`). Devices that compose audio from recorded number clips should use `amount`, `currency` and `locale`. Devices with text-to-speech or a display may use `text`.
 - `locale`: `km`, `en` or `zh`. `volume`: 0–100.
 - `simulated: true` marks demo payments (never in production). Devices may play them normally.
+- `verified: false` marks a payment read from a bank app notification on the merchant's phone ("phone bank alerts"), not confirmed by the bank. The merchant chooses per soundbox whether these are sent at all; when one arrives, announce it like any other (a device may add a short distinct tone).
 - The same `id` may arrive twice (QoS 1). Remember the last 20 ids and do not announce a repeat.
 
 ### `test` — play a test sound (merchant pressed "Play test sound")

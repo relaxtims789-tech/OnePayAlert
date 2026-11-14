@@ -40,6 +40,7 @@ export const zh: Messages = {
     networkError: '无法连接服务器，请检查网络后重试。',
     forbidden: '您没有执行此操作的权限。',
     notFound: '未找到。',
+    fromPhone: '来自手机',
   },
   nav: {
     dashboard: '概览',
@@ -134,6 +135,7 @@ export const zh: Messages = {
     noOutlet: '—',
     description: '描述',
     payerAccount: '付款账户',
+    reportedByPhone: '读取自您手机上的银行应用通知，未经银行确认。如有疑问，请在银行应用中核对。',
   },
   status: {
     PENDING: '处理中',
@@ -232,6 +234,12 @@ export const zh: Messages = {
     bakongAccountHint: '与您的银行 App 中显示的一致，例如 shop@aclb。款项直接进入此账户。',
     qrName: '二维码中显示的名称',
     qrNameHint: '顾客在银行 App 中看到的名称。拉丁字母、数字和空格，最多 25 个字符。',
+    phonesTitle: '转发通知的手机',
+    phonesEmpty: '尚未设置手机。',
+    phonesHint: '在 One PayAlert 安卓应用中设置：设置 → 本机银行通知。',
+    phoneLastSeen: '最近在线',
+    removePhone: '移除',
+    phoneRemoved: '已移除手机',
   },
   reports: {
     title: '报表',
@@ -365,6 +373,8 @@ export const zh: Messages = {
     emptyHint: '使用包装盒上的序列号和认领码添加。音箱上线后即开始播报收款。',
     disabled: '已被 MysoftKH 停用',
     readOnly: '只有所有者、管理员和经理可以添加或修改音箱。',
+    announceReported: '播报手机上报的付款',
+    announceReportedHint: '读取自商户手机银行应用通知的付款。关闭后只播报银行确认的付款。',
   },
   collect: {
     title: '收款',

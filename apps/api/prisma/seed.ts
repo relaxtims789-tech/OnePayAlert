@@ -23,6 +23,8 @@ const PROVIDERS: ProviderSeed[] = [
   { code: 'WING', name: 'Wing Bank', type: 'WALLET', adapterKey: null },
   { code: 'CANADIA', name: 'Canadia Bank', type: 'BANK', adapterKey: null },
   { code: 'PRINCE', name: 'Prince Bank', type: 'BANK', adapterKey: null },
+  // Any bank: a merchant phone forwards the bank app's "money received" notifications (reported, not bank-confirmed).
+  { code: 'PHONE_ALERTS', name: 'Bank alerts on your phone', type: 'GATEWAY', adapterKey: 'PHONE_RELAY' },
   // Standard signed webhook for payment gateways / middleware that integrate with One PayAlert.
   { code: 'ONEPAY_WEBHOOK', name: 'Signed Webhook (Gateway / Partner)', type: 'GATEWAY', adapterKey: 'ONEPAY_WEBHOOK_V1' },
 ];

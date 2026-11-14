@@ -274,4 +274,76 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get collectAmountInvalidKhr => '请输入整数瑞尔金额';
+
+  @override
+  String get bankAlerts => '本机银行通知';
+
+  @override
+  String get bankAlertsHint => '将银行应用的收款通知转发到收款音箱和后台';
+
+  @override
+  String get bankAlertsIntro =>
+      '适用于本机上的任何银行应用（ABA、ACLEDA、Wing…）。这些付款标记为“来自手机”，因为未经银行直接确认。';
+
+  @override
+  String get bankAlertsAccount => '记录到';
+
+  @override
+  String bankAlertsCreate(String currency) {
+    return '创建 $currency 连接';
+  }
+
+  @override
+  String get bankAlertsPhoneName => '本机名称';
+
+  @override
+  String get bankAlertsSetUp => '设置本机';
+
+  @override
+  String get bankAlertsAccess => '通知访问权限';
+
+  @override
+  String get bankAlertsAccessOn => '已允许';
+
+  @override
+  String get bankAlertsAccessOff => '允许 One PayAlert 读取通知，然后返回。';
+
+  @override
+  String get bankAlertsOpenSettings => '打开设置';
+
+  @override
+  String get bankAlertsApps => '要转发的银行应用';
+
+  @override
+  String get bankAlertsAppsHint => '只转发您勾选的应用。没看到？等银行应用发出任意通知后，下拉刷新。';
+
+  @override
+  String get bankAlertsActivity => '动态';
+
+  @override
+  String bankAlertsLast(String time) {
+    return '最近：$time';
+  }
+
+  @override
+  String bankAlertsCounts(int accepted, int ignored, int failed) {
+    return '收款 $accepted · 跳过 $ignored · 失败 $failed';
+  }
+
+  @override
+  String bankAlertsQueued(int count) {
+    return '$count 条待发送';
+  }
+
+  @override
+  String get bankAlertsRemoved => '本机已在后台被移除。请重新设置以继续转发。';
+
+  @override
+  String get bankAlertsStop => '停止本机转发';
+
+  @override
+  String get bankAlertsKeepOn => '请保持本机开机、联网并登录银行应用。';
+
+  @override
+  String get fromPhone => '来自手机';
 }

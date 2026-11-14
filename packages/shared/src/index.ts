@@ -10,3 +10,4 @@ export * from './reports';
 export * from './errors';
 export * from './devices';
 export * from './khqr';
+export * from './bank-notifications';

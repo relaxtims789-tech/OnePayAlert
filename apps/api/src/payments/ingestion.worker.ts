@@ -157,6 +157,7 @@ export class IngestionWorker implements OnModuleInit, OnModuleDestroy {
             occurredAt: n.occurredAt,
             rawPayload: ev.payload as Prisma.InputJsonValue,
             isSimulated: ev.source === 'SIMULATOR',
+            verification: adapter.key === AdapterKey.PHONE_RELAY ? 'REPORTED' : 'VERIFIED',
           },
           include: transactionInclude,
         });

@@ -22,6 +22,12 @@ export function ConnectionStatus({ status }: { status: BankConnectionStatus }) {
   return <Badge tone={CONN_TONE[status]}>{t(`connectionStatus.${status}`)}</Badge>;
 }
 
+/** A payment read from a bank app notification on a merchant phone, not confirmed by the bank. */
+export function FromPhoneBadge() {
+  const { t } = useI18n();
+  return <Badge tone="neutral">{t('common.fromPhone')}</Badge>;
+}
+
 export function DemoBadge() {
   const { t } = useI18n();
   return <Badge tone="pending">{t('common.demo')}</Badge>;

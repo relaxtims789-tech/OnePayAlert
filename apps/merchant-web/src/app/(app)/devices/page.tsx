@@ -11,8 +11,8 @@ import { dateTime } from '@/lib/format';
 import { errorText, useCan, useErrorToast, useOutletOptions } from '@/lib/hooks';
 import { LOCALE_LABELS, useI18n } from '@/lib/i18n';
 
-type Draft = { serialNumber: string; claimCode: string; name: string; outletId: string; locale: Locale; volume: number };
-const emptyDraft = (locale: Locale): Draft => ({ serialNumber: '', claimCode: '', name: '', outletId: '', locale, volume: 80 });
+type Draft = { serialNumber: string; claimCode: string; name: string; outletId: string; locale: Locale; volume: number; announceReported: boolean };
+const emptyDraft = (locale: Locale): Draft => ({ serialNumber: '', claimCode: '', name: '', outletId: '', locale, volume: 80, announceReported: true });
 
 export default function DevicesPage() {
   const { t, locale } = useI18n();
@@ -47,6 +47,7 @@ export default function DevicesPage() {
             outletId: draft.outletId || null,
             locale: draft.locale,
             volume: draft.volume,
+            announceReported: draft.announceReported,
           }),
     onSuccess: async () => {
       show({ tone: 'success', title: mode === 'add' ? t('devices.added') : t('devices.saved') });
@@ -84,7 +85,7 @@ export default function DevicesPage() {
     setDraft(
       target === 'add'
         ? emptyDraft(locale)
-        : { serialNumber: target.serialNumber, claimCode: '', name: target.name ?? '', outletId: target.outletId ?? '', locale: target.locale, volume: target.volume },
+        : { serialNumber: target.serialNumber, claimCode: '', name: target.name ?? '', outletId: target.outletId ?? '', locale: target.locale, volume: target.volume, announceReported: target.announceReported },
     );
     setMode(target);
   }
@@ -284,6 +285,21 @@ export default function DevicesPage() {
                 />
               )}
             </Field>
+          ) : null}
+          {mode !== 'add' ? (
+            <label className="flex items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-[#0759B8]"
+                checked={draft.announceReported}
+                onChange={(e) => setDraft({ ...draft, announceReported: e.target.checked })}
+                data-testid="announce-reported"
+              />
+              <span>
+                <span className="block text-ink">{t('devices.announceReported')}</span>
+                <span className="block text-xs text-ink-3">{t('devices.announceReportedHint')}</span>
+              </span>
+            </label>
           ) : null}
           {formError ? <Alert tone="error">{formError}</Alert> : null}
         </form>

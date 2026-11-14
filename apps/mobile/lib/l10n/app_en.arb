@@ -135,5 +135,60 @@
   "collectNotAvailable": "KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.",
   "collectNoAccount": "No Bakong KHQR account is connected yet. The owner can connect one in the web dashboard.",
   "collectAmountInvalid": "Enter a valid amount",
-  "collectAmountInvalidKhr": "Enter a whole riel amount"
+  "collectAmountInvalidKhr": "Enter a whole riel amount",
+  "bankAlerts": "Bank alerts on this phone",
+  "bankAlertsHint": "Forward your bank app's payment alerts to the soundbox and dashboard",
+  "bankAlertsIntro": "Works with any bank app on this phone (ABA, ACLEDA, Wing…). These payments are marked \"From phone\" because the bank did not confirm them directly.",
+  "bankAlertsAccount": "Record payments in",
+  "bankAlertsCreate": "Create {currency} connection",
+  "@bankAlertsCreate": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "bankAlertsPhoneName": "Name of this phone",
+  "bankAlertsSetUp": "Set up this phone",
+  "bankAlertsAccess": "Notification access",
+  "bankAlertsAccessOn": "Allowed",
+  "bankAlertsAccessOff": "Allow One PayAlert to read notifications, then come back.",
+  "bankAlertsOpenSettings": "Open settings",
+  "bankAlertsApps": "Bank apps to forward",
+  "bankAlertsAppsHint": "Only the apps you tick are sent. Not listed? Wait for any notification from your bank app, then pull down to refresh.",
+  "bankAlertsActivity": "Activity",
+  "bankAlertsLast": "Last: {time}",
+  "@bankAlertsLast": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "bankAlertsCounts": "{accepted} payments · {ignored} skipped · {failed} failed",
+  "@bankAlertsCounts": {
+    "placeholders": {
+      "accepted": {
+        "type": "int"
+      },
+      "ignored": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "bankAlertsQueued": "{count} waiting to send",
+  "@bankAlertsQueued": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bankAlertsRemoved": "This phone was removed in the dashboard. Set it up again to keep forwarding.",
+  "bankAlertsStop": "Stop forwarding on this phone",
+  "bankAlertsKeepOn": "Keep this phone on, online and signed in to your bank app.",
+  "fromPhone": "From phone"
 }

@@ -6,7 +6,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { join } from 'node:path';
 import request from 'supertest';
 import { MqttClientBridge } from '../src/devices/mqtt.bridge';
-import { API, PASSWORD, bearer, createTestApp, login, prismaOf, registerMerchant, uniqueEmail, waitFor } from './helpers';
+import { API, PASSWORD, bearer, createTestApp, enrollPhone, login, prismaOf, registerMerchant, relayConnection, relayNotify, uniqueEmail, waitFor } from './helpers';
 
 const HOOK_SECRET = process.env.MQTT_HOOK_SECRET as string;
 const API_MQTT_PASSWORD = process.env.MQTT_PASSWORD as string;
@@ -234,6 +234,35 @@ describe('Soundbox devices and MQTT (e2e)', () => {
       await pay('3.00', 'BKK1', 'payment.pending');
       await settle(1200);
       expect([...river.box.commands, ...city.box.commands, ...shopWide.box.commands]).toEqual([]);
+    });
+
+    it('speaks payments reported by a phone only on soundboxes that allow it, and says so', async () => {
+      const mk = async () => {
+        const c = await register();
+        const d = (await claim(owner, { serialNumber: c.device.serialNumber, claimCode: c.claimCode, locale: 'en' }).expect(201)).body as DeviceDto;
+        const box = await soundbox(broker.port, d.serialNumber);
+        devices.push(box.client);
+        return { d, box };
+      };
+      const speaks = await mk();
+      const strict = await mk();
+      expect(strict.d.announceReported).toBe(true); // on by default
+      const off = await request(http).patch(`${API}/devices/${strict.d.id}`).set('Authorization', bearer(owner)).send({ announceReported: false }).expect(200);
+      expect(off.body.announceReported).toBe(false);
+      await settle();
+      for (const b of [speaks, strict]) b.box.commands.length = 0;
+
+      const phone = await enrollPhone(app, owner, (await relayConnection(app, owner, 'USD')).id);
+      await relayNotify(app, phone, { text: 'Received $6.75 from LIM HENG' }).expect(200);
+      await waitFor(async () => speaks.box.commands.length > 0);
+      await settle(1200);
+      expect(speaks.box.commands).toEqual([expect.objectContaining({ type: 'payment', amountMinor: 675, verified: false })]);
+      expect(strict.box.commands).toEqual([]);
+
+      // Bank-confirmed payments still reach both.
+      await pay('2.00', 'NONE');
+      await waitFor(async () => strict.box.commands.length > 0);
+      expect(strict.box.commands).toEqual([expect.objectContaining({ type: 'payment', amountMinor: 200, verified: true })]);
     });
 
     it('pushes setting changes and test sounds to the device', async () => {

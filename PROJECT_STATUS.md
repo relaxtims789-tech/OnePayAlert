@@ -3,7 +3,7 @@
 > **One Platform. Multiple Banks. Instant Payment Alerts.**
 > Mysoftkh · Fintech / payment notification SaaS · Cambodia
 
-_Last updated: 2026-11-13 — CI green on GitHub, per-account sign-in lockout_
+_Last updated: 2026-11-14 — CI green on GitHub, per-account sign-in lockout_
 
 ## Phase overview
 
@@ -21,7 +21,31 @@ _Last updated: 2026-11-13 — CI green on GitHub, per-account sign-in lockout_
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 73 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **104 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **27 browser e2e** (16 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **29 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 79 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **111 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **28 browser e2e** (17 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **32 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Phone bank alerts: soundbox payments from any bank
+
+The soundbox no longer depends on one integration. A merchant's Android phone forwards the "money received" notifications of the bank apps they choose (ABA, ACLEDA, Wing or any other), and the payment is announced on the soundbox, phone and dashboard. No bank agreement is needed, and printed (static) KHQR stickers are covered too: Bakong's API cannot confirm those, the bank app's notification can.
+
+**How it works**
+1. **Set up** (app → Settings → Bank alerts on this phone; owners and admins). Pick or create a "Bank alerts on your phone" connection (USD and/or KHR). The phone gets its own secret, shown once and kept in Android's encrypted storage; the API keeps only an encrypted copy.
+2. **Grant notification access** in Android settings (the app opens the right page), then **tick the bank apps** to forward. Only ticked apps are sent; other apps are listed by name so the bank app can be picked, and their content never leaves the phone.
+3. **A native listener** (`BankAlertListener.kt`) forwards each notification of a ticked app, signed like the signed webhook (HMAC-SHA256 with a timestamp), even while the app is closed. Sends that fail are queued (up to 50, for 24 hours) and re-signed when retried.
+4. **The server decides** (`parseBankNotification`, shared package) whether it is money in: incoming wording in English, Khmer and Chinese, Khmer digits, `$`, `USD`, `៛`, `KHR`, a balance shown after the amount. Money going out, security codes and anything with two different amounts are ignored, never guessed. Parsing on the server means a bank changing its wording is fixed without an app update.
+5. **Recorded as REPORTED**, not VERIFIED: the dashboard and app label these payments "From phone". Riel alerts go to the shop's KHR phone-alert connection. The same payment forwarded twice (Android re-posting it, or two phones of the shop) counts once.
+6. **Each soundbox has a switch**, "Speak payments reported by phone" (on by default). Merchants who want bank-confirmed announcements only turn it off. Commands carry `verified: true/false`.
+
+**Checked on the Android emulator, end to end:** set-up screen in Khmer, connection created, phone enrolled, Android's notification-access page opened from the app. A notification posted on the device was picked up by the real listener, forwarded, accepted, and recorded as a $5.50 REPORTED payment that appeared in the live feed labelled "From phone"; a security-code notification was skipped.
+
+**Tests:** 4 parser unit tests (shared), 6 API e2e (enrolment, signature/replay/revoked refusals, reported payments, duplicates across phones, riel routing, permissions), 1 soundbox e2e (switch honoured, `verified` flag), 3 Flutter widget tests, 1 merchant browser test.
+
+**Known gaps**
+- **Bank wording is unconfirmed.** The parser is tested with notifications written in the style of Cambodian bank apps, not real samples. Collect real notifications from ABA, ACLEDA, Wing and others before relying on it, and add each bank's exact wording as a test.
+- Android only; the phone must stay on, online and signed in to the bank app. Battery savers on some brands (Xiaomi, Oppo, Vivo) may stop the listener; merchants may need to exempt One PayAlert.
+- Google Play requires a notification-access declaration for this feature before release.
+- A notification can be faked on the phone itself, which is why these payments are REPORTED and the per-soundbox switch exists.
 
 ---
 

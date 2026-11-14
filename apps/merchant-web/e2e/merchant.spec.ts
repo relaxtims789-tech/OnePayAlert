@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { expect, test, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import { API_URL, BILLING_STAFF } from './fixtures';
 
@@ -329,6 +330,41 @@ test('collects a payment with a KHQR code (simulated Bakong)', async ({ page }) 
   const row = page.getByRole('row').filter({ hasText: reference! });
   await expect(row).toContainText('$7.50');
   await expect(row).toContainText('Demo');
+});
+
+test('payments forwarded from a phone bank alert appear, marked "From phone"', async ({ page, request }) => {
+  await signIn(page, owner.email, owner.password);
+  await page.goto('/bank-connections');
+  await page.getByRole('button', { name: 'Connect account' }).first().click();
+  await page.getByTestId('provider-PHONE_ALERTS').click();
+  await page.getByRole('dialog').getByLabel('Account label').fill('ABA alerts');
+  await page.getByRole('dialog').getByRole('button', { name: 'Connect account' }).click();
+  await expect(page.getByText('Account connected')).toBeVisible();
+  const card = page.getByTestId('connection-card').filter({ hasText: 'ABA alerts' });
+  await expect(card).toContainText('Active');
+  await expect(card.getByTestId('relay-phones')).toContainText('No phone set up yet.');
+
+  // What the Android app does: set itself up, then forward a signed bank notification.
+  const login = await (await request.post(`${API_URL}/auth/login`, { data: { email: owner.email, password: owner.password } })).json();
+  const auth = { Authorization: `Bearer ${login.accessToken}` };
+  const connections = await (await request.get(`${API_URL}/bank-connections?pageSize=100`, { headers: auth })).json();
+  const conn = connections.items.find((c: { displayName: string }) => c.displayName === 'ABA alerts');
+  const phone = await (await request.post(`${API_URL}/relay/phones`, { headers: auth, data: { bankConnectionId: conn.id, name: 'Counter phone' } })).json();
+  const body = JSON.stringify({ key: `pw-${Date.now()}`, app: 'com.paygo24.ibank', title: 'ABA PAY', text: '$4.40 paid by LIM HENG via ABA PAY', postedAt: new Date().toISOString() });
+  const ts = Math.floor(Date.now() / 1000);
+  const sig = 'v1=' + createHmac('sha256', phone.secret).update(`${ts}.${body}`).digest('hex');
+  const sent = await request.post(`${API_URL}/relay/notifications`, {
+    headers: { 'Content-Type': 'application/json', 'x-onepay-relay-id': phone.relayId, 'x-onepay-timestamp': String(ts), 'x-onepay-signature': sig },
+    data: body,
+  });
+  expect(await sent.json()).toEqual({ status: 'accepted' });
+
+  await page.reload();
+  await expect(page.getByTestId('connection-card').filter({ hasText: 'ABA alerts' }).getByTestId('relay-phones')).toContainText('Counter phone');
+  await page.goto('/transactions');
+  const row = page.getByRole('row').filter({ hasText: 'LIM HENG' });
+  await expect(row).toContainText('$4.40');
+  await expect(row).toContainText('From phone');
 });
 
 test('switches the whole interface to Khmer and remembers it', async ({ page }) => {

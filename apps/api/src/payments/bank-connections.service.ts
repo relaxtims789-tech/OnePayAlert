@@ -171,7 +171,7 @@ export class BankConnectionsService {
 
     const id = randomUUID();
     const webhookSecret = adapter?.acceptsPublicWebhooks ? newWebhookSecret() : null;
-    const status = !adapter ? 'PENDING' : adapter.demoOnly || isKhqr ? 'ACTIVE' : 'PENDING';
+    const status = !adapter ? 'PENDING' : adapter.demoOnly || isKhqr || adapter.key === AdapterKey.PHONE_RELAY ? 'ACTIVE' : 'PENDING';
     const lastError = adapter
       ? null
       : `Live integration with ${provider.name} is not available yet. The connection will activate once it is.`;

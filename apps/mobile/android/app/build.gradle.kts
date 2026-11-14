@@ -52,4 +52,6 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Phone bank alerts: the phone secret is kept in Android's encrypted storage.
+    implementation("androidx.security:security-crypto:1.0.0")
 }

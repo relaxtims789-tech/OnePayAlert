@@ -125,6 +125,16 @@ enum WebhookEventSource {
   SIMULATOR
   /// Confirmed by the API polling the provider (Bakong KHQR).
   POLLER
+  /// Forwarded by a merchant phone from a bank app notification (phone bank alerts).
+  RELAY
+}
+
+/// How sure we are that a payment really arrived.
+enum TransactionVerification {
+  /// Confirmed by the bank, Bakong or a signed gateway.
+  VERIFIED
+  /// Read from a bank app notification on the merchant's own phone.
+  REPORTED
 }
 
 /// A dynamic KHQR payment request shown to a customer at the counter.
@@ -174,6 +184,8 @@ model Company {
   khqrCharges     KhqrCharge[]
   invoices        Invoice[]
   auditLogs       AuditLog[]
+
+  relayPhones RelayPhone[]
 
   @@index([status])
   @@map("companies")
@@ -358,33 +370,36 @@ model BankConnection {
   webhookEvents WebhookEvent[]
   khqrCharges   KhqrCharge[]
 
+  relayPhones RelayPhone[]
+
   @@index([companyId])
   @@index([providerId])
   @@map("bank_connections")
 }
 
 model Transaction {
-  id                 String               @id @default(uuid()) @db.Uuid
-  companyId          String               @map("company_id") @db.Uuid
-  outletId           String?              @map("outlet_id") @db.Uuid
-  bankConnectionId   String               @map("bank_connection_id") @db.Uuid
-  providerTxnId      String               @map("provider_txn_id") @db.VarChar(128)
-  direction          TransactionDirection @default(CREDIT)
+  id                 String                  @id @default(uuid()) @db.Uuid
+  companyId          String                  @map("company_id") @db.Uuid
+  outletId           String?                 @map("outlet_id") @db.Uuid
+  bankConnectionId   String                  @map("bank_connection_id") @db.Uuid
+  providerTxnId      String                  @map("provider_txn_id") @db.VarChar(128)
+  direction          TransactionDirection    @default(CREDIT)
   status             TransactionStatus
-  amountMinor        BigInt               @map("amount_minor")
+  amountMinor        BigInt                  @map("amount_minor")
   currency           Currency
-  payerName          String?              @map("payer_name") @db.VarChar(160)
-  payerAccountMasked String?              @map("payer_account_masked") @db.VarChar(40)
-  reference          String?              @db.VarChar(160)
-  description        String?              @db.VarChar(500)
-  occurredAt         DateTime             @map("occurred_at") @db.Timestamptz(6)
-  receivedAt         DateTime             @default(now()) @map("received_at") @db.Timestamptz(6)
+  payerName          String?                 @map("payer_name") @db.VarChar(160)
+  payerAccountMasked String?                 @map("payer_account_masked") @db.VarChar(40)
+  reference          String?                 @db.VarChar(160)
+  description        String?                 @db.VarChar(500)
+  occurredAt         DateTime                @map("occurred_at") @db.Timestamptz(6)
+  receivedAt         DateTime                @default(now()) @map("received_at") @db.Timestamptz(6)
   /// Provider payload kept for reconciliation (secrets stripped before storing).
-  rawPayload         Json?                @map("raw_payload")
+  rawPayload         Json?                   @map("raw_payload")
   /// True only for demo simulator payments. Always false in production.
-  isSimulated        Boolean              @default(false) @map("is_simulated")
-  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isSimulated        Boolean                 @default(false) @map("is_simulated")
+  verification       TransactionVerification @default(VERIFIED)
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   outlet         Outlet?        @relation(fields: [outletId], references: [id], onDelete: SetNull)
@@ -427,29 +442,31 @@ model WebhookEvent {
 /// A payment soundbox. Connects to EMQX with username = client id = serial number and a per-device
 /// password; EMQX asks the API (HTTP auth/ACL hooks) whether to let it in and what it may touch.
 model Device {
-  id            String       @id @default(uuid()) @db.Uuid
-  companyId     String?      @map("company_id") @db.Uuid
-  outletId      String?      @map("outlet_id") @db.Uuid
-  serialNumber  String       @unique @map("serial_number") @db.VarChar(64)
-  model         String       @db.VarChar(64)
+  id               String       @id @default(uuid()) @db.Uuid
+  companyId        String?      @map("company_id") @db.Uuid
+  outletId         String?      @map("outlet_id") @db.Uuid
+  serialNumber     String       @unique @map("serial_number") @db.VarChar(64)
+  model            String       @db.VarChar(64)
   /// Merchant's label, e.g. "Front counter".
-  name          String?      @db.VarChar(80)
-  firmware      String?      @db.VarChar(32)
+  name             String?      @db.VarChar(80)
+  firmware         String?      @db.VarChar(32)
   /// Argon2 hash of the device's MQTT password (shown once, flashed onto the device).
-  secretHash    String       @map("secret_hash")
+  secretHash       String       @map("secret_hash")
   /// Argon2 hash of the claim code printed on the box (lets a merchant prove they hold the device).
-  claimCodeHash String       @map("claim_code_hash")
-  status        DeviceStatus @default(UNASSIGNED)
+  claimCodeHash    String       @map("claim_code_hash")
+  status           DeviceStatus @default(UNASSIGNED)
   /// Announcement language and volume (0-100).
-  locale        Locale       @default(km)
-  volume        Int          @default(80)
-  online        Boolean      @default(false)
-  lastSeenAt    DateTime?    @map("last_seen_at") @db.Timestamptz(6)
-  batteryPct    Int?         @map("battery_pct")
-  signalDbm     Int?         @map("signal_dbm")
-  claimedAt     DateTime?    @map("claimed_at") @db.Timestamptz(6)
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  locale           Locale       @default(km)
+  volume           Int          @default(80)
+  /// Speak payments read from a phone bank alert (not confirmed by the bank).
+  announceReported Boolean      @default(true) @map("announce_reported")
+  online           Boolean      @default(false)
+  lastSeenAt       DateTime?    @map("last_seen_at") @db.Timestamptz(6)
+  batteryPct       Int?         @map("battery_pct")
+  signalDbm        Int?         @map("signal_dbm")
+  claimedAt        DateTime?    @map("claimed_at") @db.Timestamptz(6)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   outlet  Outlet?  @relation(fields: [outletId], references: [id], onDelete: SetNull)
@@ -593,4 +610,26 @@ model KhqrCharge {
   @@index([status, expiresAt])
   @@index([companyId, createdAt(sort: Desc)])
   @@map("khqr_charges")
+}
+
+/// A merchant phone that forwards bank app notifications ("phone bank alerts").
+model RelayPhone {
+  id               String    @id @default(uuid()) @db.Uuid
+  companyId        String    @map("company_id") @db.Uuid
+  bankConnectionId String    @map("bank_connection_id") @db.Uuid
+  name             String    @db.VarChar(80)
+  /// AES-GCM. The phone signs every request with it (HMAC-SHA256, as the signed webhook does).
+  secretCiphertext String    @map("secret_ciphertext")
+  createdById      String?   @map("created_by_id") @db.Uuid
+  lastSeenAt       DateTime? @map("last_seen_at") @db.Timestamptz(6)
+  lastPaymentAt    DateTime? @map("last_payment_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bankConnection BankConnection @relation(fields: [bankConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([bankConnectionId])
+  @@map("relay_phones")
 }

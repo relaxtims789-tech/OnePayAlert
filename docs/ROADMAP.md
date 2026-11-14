@@ -53,5 +53,8 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 ## Phone bank alerts ✅
 - Android phones forward chosen bank apps' "money received" notifications; payments from any bank reach the soundbox, marked REPORTED. Still open: real notification samples per bank, Play Store declaration (see PROJECT_STATUS.md).
 
+## Soundbox activation in the app ✅
+- Box-label QR (serial + claim code) printed from the admin console; merchants activate from the phone by scanning it, with outlet and language. Still open: in-app soundbox ordering.
+
 ## Next: pilot
 - Get a Bakong token and run KHQR live, deploy the demo environment, run CI on GitHub, onboard the first merchants, and a physical soundbox.

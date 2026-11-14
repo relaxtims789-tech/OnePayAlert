@@ -101,3 +101,37 @@ export const DEVICE_TEST_TEXT: Record<Locale, string> = {
   en: 'One PayAlert sound test',
   zh: 'One PayAlert 声音测试',
 };
+
+/**
+ * The QR printed on a soundbox label: serial number and claim code together, so a merchant
+ * activates the box by scanning instead of typing. Plain text on purpose (not a web link), so the
+ * claim code never ends up in a browser history or a server log.
+ */
+export const SOUNDBOX_LABEL_PREFIX = 'OPASB1';
+
+const CLAIM_CODE_CHARS = /^[23456789ABCDEFGHJKMNPQRSTVWXYZ]{8}$/;
+
+export function soundboxLabelPayload(serialNumber: string, claimCode: string): string {
+  return `${SOUNDBOX_LABEL_PREFIX}:${serialNumber}:${claimCode}`;
+}
+
+/** "k7qf2m9x" / "K7QF-2M9X" → "K7QF-2M9X"; null when it cannot be a claim code. */
+export function normaliseClaimCodeInput(raw: string): string | null {
+  const c = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return CLAIM_CODE_CHARS.test(c) ? `${c.slice(0, 4)}-${c.slice(4)}` : null;
+}
+
+/**
+ * Reads what the camera saw: the full label QR (serial and claim code), or just the serial
+ * (a barcode under the device). Anything else is not a soundbox label.
+ */
+export function parseSoundboxLabel(scanned: string): { serialNumber: string; claimCode: string | null } | null {
+  const text = scanned.trim().toUpperCase();
+  const parts = text.split(':');
+  if (parts[0] === SOUNDBOX_LABEL_PREFIX) {
+    if (parts.length !== 3 || !DEVICE_SERIAL_PATTERN.test(parts[1]!)) return null;
+    const claimCode = normaliseClaimCodeInput(parts[2]!);
+    return claimCode ? { serialNumber: parts[1]!, claimCode } : null;
+  }
+  return DEVICE_SERIAL_PATTERN.test(text) ? { serialNumber: text, claimCode: null } : null;
+}

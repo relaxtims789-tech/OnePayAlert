@@ -84,6 +84,23 @@ class Repository {
 
   Future<void> revokePhone(String relayId) => api.request('DELETE', 'relay/phones/$relayId');
 
+  Future<List<Soundbox>> soundboxes() async =>
+      ((await api.request('GET', 'devices')) as List).map((e) => Soundbox.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+
+  /// Adds a soundbox to the company with the serial and claim code from its box label.
+  Future<Soundbox> claimSoundbox({required String serialNumber, required String claimCode, String? outletId, String? name, required String locale}) async =>
+      Soundbox.fromJson(Map<String, dynamic>.from(await api.request('POST', 'devices/claim', data: {
+        'serialNumber': serialNumber,
+        'claimCode': claimCode,
+        'outletId': ?outletId,
+        if (name != null && name.isNotEmpty) 'name': name,
+        'locale': locale,
+      }) as Map));
+
+  /// Plays the test sentence on the soundbox; false when it is offline.
+  Future<bool> testSoundbox(String id) async =>
+      (Map<String, dynamic>.from(await api.request('POST', 'devices/$id/test') as Map))['online'] as bool? ?? false;
+
   Future<void> registerPushToken(String token, String platform) =>
       api.request('PUT', 'me/push-tokens', data: {'token': token, 'platform': platform});
 

@@ -6,6 +6,7 @@ import '../core/config.dart';
 import '../l10n/app_localizations.dart';
 import '../state/app_state.dart';
 import 'bank_alerts_screen.dart';
+import 'soundboxes_screen.dart';
 import 'theme.dart';
 
 const _languages = {'km': 'ខ្មែរ', 'en': 'English', 'zh': '中文'};
@@ -111,6 +112,19 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ]),
         ),
+        if (me.can('device.read')) ...[
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              key: const Key('soundboxes-tile'),
+              leading: const Icon(Icons.speaker_rounded, color: Brand.primary),
+              title: Text(t.soundboxes, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(t.soundboxesHint),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SoundboxesScreen())),
+            ),
+          ),
+        ],
         // Phone bank alerts: Android only, set up by owners and admins.
         if (defaultTargetPlatform == TargetPlatform.android && me.can('bank_connection.manage')) ...[
           const SizedBox(height: 16),

@@ -1,12 +1,13 @@
 'use client';
 
-import { Permission, type DeviceCredentialsDto, type DeviceStatus, type Paginated, type PlatformDeviceDto } from '@onepay/shared';
+import { Permission, soundboxLabelPayload, type DeviceCredentialsDto, type DeviceStatus, type Paginated, type PlatformDeviceDto } from '@onepay/shared';
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, Field, Input, Modal, Pagination, Segmented, Table, TableSkeleton, Td, Th, useToast, cn, type Tone } from '@onepay/ui';
 import { api } from '@onepay/web-core/client';
 import { dateTime } from '@onepay/web-core/format';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Plus, Search, Speaker } from 'lucide-react';
 import Link from 'next/link';
+import QRCode from 'qrcode';
 import { useEffect, useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/common';
 import { errorText, useCan, useErrorToast } from '@/lib/hooks';
@@ -266,6 +267,7 @@ export default function DevicesPage() {
             <CopyValue label={t('devices.mqttUsername')} value={credentials.mqttUsername} testId="mqtt-username" />
             <CopyValue label={t('devices.mqttPassword')} value={credentials.mqttPassword} testId="mqtt-password" />
             {credentials.claimCode ? <CopyValue label={t('devices.claimCode')} value={credentials.claimCode} testId="claim-code" /> : null}
+            {credentials.claimCode ? <LabelQr serial={credentials.device.serialNumber} claimCode={credentials.claimCode} /> : null}
           </div>
         ) : null}
       </Modal>
@@ -291,3 +293,29 @@ export default function DevicesPage() {
     </>
   );
 }
+
+/** The QR for the box label: the merchant scans it in the app to activate the soundbox. */
+function LabelQr({ serial, claimCode }: { serial: string; claimCode: string }) {
+  const { t } = useI18n();
+  const [svg, setSvg] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    void QRCode.toString(soundboxLabelPayload(serial, claimCode), { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }).then((s) => {
+      if (!cancelled) setSvg(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [serial, claimCode]);
+  return (
+    <div className="flex items-center gap-4 rounded-xl border border-line p-3" data-testid="label-qr">
+      <div className="size-28 shrink-0 rounded-lg bg-white p-1" role="img" aria-label={t('devices.labelQr')} dangerouslySetInnerHTML={{ __html: svg }} />
+      <div className="min-w-0 text-sm">
+        <p className="font-medium text-ink">{t('devices.labelQr')}</p>
+        <p className="mt-1 text-ink-2">{t('devices.labelQrHint')}</p>
+        <code className="mt-1 block break-all text-xs text-ink-3">{soundboxLabelPayload(serial, claimCode)}</code>
+      </div>
+    </div>
+  );
+}
+

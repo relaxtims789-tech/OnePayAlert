@@ -346,4 +346,82 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fromPhone => '来自手机';
+
+  @override
+  String get soundboxes => '收款音箱';
+
+  @override
+  String get soundboxesHint => '在收银台播报收款的音箱';
+
+  @override
+  String get soundboxPitchTitle => '为收银台配一台收款音箱';
+
+  @override
+  String get soundboxPitch1 => '每笔收款都会语音播报，无需盯着屏幕';
+
+  @override
+  String get soundboxPitch2 => '支持柬埔寨任何银行的付款';
+
+  @override
+  String get soundboxPitch3 => '可用高棉语、英语或中文播报';
+
+  @override
+  String get soundboxOrderHint => '需要购买？请联系 MysoftKH 客服。';
+
+  @override
+  String get activateSoundbox => '激活收款音箱';
+
+  @override
+  String get scanLabel => '扫描包装标签';
+
+  @override
+  String get scanLabelHint => '将相机对准收款音箱包装盒上的二维码。';
+
+  @override
+  String get notALabel => '这不是收款音箱标签。';
+
+  @override
+  String get serialNumber => '序列号';
+
+  @override
+  String get claimCode => '认领码';
+
+  @override
+  String get claimCodeHint => '包装标签上的 8 位字符，例如 K7QF-2M9X';
+
+  @override
+  String get soundboxOutlet => '播报哪个门店的收款';
+
+  @override
+  String get soundboxName => '名称（可选）';
+
+  @override
+  String get soundboxLanguage => '播报语言';
+
+  @override
+  String get soundboxActivated => '收款音箱已激活';
+
+  @override
+  String get playTestSound => '播放测试音';
+
+  @override
+  String get testSoundSent => '已发送测试音';
+
+  @override
+  String get testSoundOffline => '已发送，但音箱离线。请检查电源和网络。';
+
+  @override
+  String get soundboxOnline => '在线';
+
+  @override
+  String get invalidClaimCode => '请检查认领码：8 位字母和数字。';
+
+  @override
+  String get invalidSerial => '请检查序列号。';
+
+  @override
+  String get cameraUnavailable => '相机不可用，请手动输入序列号和认领码。';
+
+  @override
+  String get done => '完成';
 }

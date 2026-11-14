@@ -17,7 +17,7 @@ For firmware developers. A soundbox is a speaker at the counter that announces e
 
 Serial numbers are 5–32 characters: `A–Z`, `0–9` and `-`, starting with a letter or digit.
 
-The box label carries the **claim code** (`XXXX-XXXX`). The merchant types the serial number and the claim code into the One PayAlert dashboard to add the device to their shop. The firmware never needs the claim code.
+The box label carries the **claim code** (`XXXX-XXXX`) and a **QR code** with the text `OPASB1:<serial>:<claim code>` (shown in the admin console at registration), which merchants scan in the One PayAlert app. The merchant types the serial number and the claim code into the One PayAlert dashboard to add the device to their shop. The firmware never needs the claim code.
 
 A device that MysoftKH disables, or whose password is rotated, is refused at its next connection (`Not authorized`). It should keep retrying with back-off (for example 5 s, 10 s, 30 s, then every 60 s) and not erase its configuration.
 

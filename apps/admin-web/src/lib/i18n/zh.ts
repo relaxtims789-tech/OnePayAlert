@@ -246,6 +246,8 @@ export const zh: Messages = {
     enable: '启用',
     disabledDone: '已停用 {serial}，下次连接时将被拒绝。',
     enabledDone: '已启用 {serial}',
+    labelQr: '标签二维码',
+    labelQrHint: '将其印在包装盒标签上、认领码旁边。商户在 One PayAlert 应用中扫描即可激活收款音箱。',
   },
   deviceStatus: {
     UNASSIGNED: '库存中',

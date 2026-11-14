@@ -246,6 +246,8 @@ export const km: Messages = {
     enable: 'បើក',
     disabledDone: 'បានបិទ {serial}។ វានឹងត្រូវបដិសេធនៅពេលភ្ជាប់លើកក្រោយ។',
     enabledDone: 'បានបើក {serial}',
+    labelQr: 'QR លើស្លាក',
+    labelQrHint: 'បោះពុម្ពវាលើស្លាកប្រអប់ ក្បែរលេខកូដ។ អាជីវករស្កេនវាក្នុងកម្មវិធី One PayAlert ដើម្បីដំណើរការ Soundbox។',
   },
   deviceStatus: {
     UNASSIGNED: 'នៅក្នុងស្តុក',

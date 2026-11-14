@@ -244,6 +244,8 @@ export const en = {
     enable: 'Enable',
     disabledDone: '{serial} disabled. It is refused at its next connection.',
     enabledDone: '{serial} enabled',
+    labelQr: 'Label QR',
+    labelQrHint: 'Print it on the box label next to the claim code. Merchants scan it in the One PayAlert app to activate the soundbox.',
   },
   deviceStatus: {
     UNASSIGNED: 'In stock',

@@ -265,3 +265,38 @@ class RelayEnrollment {
   final String relayId;
   final String secret;
 }
+
+/// A soundbox of the company (GET /devices).
+class Soundbox {
+  const Soundbox({
+    required this.id,
+    required this.serialNumber,
+    required this.name,
+    required this.outletId,
+    required this.status,
+    required this.locale,
+    required this.online,
+    required this.batteryPct,
+  });
+  final String id;
+  final String serialNumber;
+  final String? name;
+  final String? outletId;
+  final String status;
+  final String locale;
+  final bool online;
+  final int? batteryPct;
+
+  String get label => (name == null || name!.isEmpty) ? serialNumber : name!;
+
+  factory Soundbox.fromJson(Map<String, dynamic> j) => Soundbox(
+        id: j['id'] as String,
+        serialNumber: j['serialNumber'] as String,
+        name: j['name'] as String?,
+        outletId: j['outletId'] as String?,
+        status: j['status'] as String,
+        locale: j['locale'] as String,
+        online: j['online'] as bool? ?? false,
+        batteryPct: (j['batteryPct'] as num?)?.toInt(),
+      );
+}

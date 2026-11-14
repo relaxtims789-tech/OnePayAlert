@@ -729,6 +729,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'From phone'**
   String get fromPhone;
+
+  /// No description provided for @soundboxes.
+  ///
+  /// In en, this message translates to:
+  /// **'Soundboxes'**
+  String get soundboxes;
+
+  /// No description provided for @soundboxesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Speakers that announce payments at the counter'**
+  String get soundboxesHint;
+
+  /// No description provided for @soundboxPitchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get a soundbox for your counter'**
+  String get soundboxPitchTitle;
+
+  /// No description provided for @soundboxPitch1.
+  ///
+  /// In en, this message translates to:
+  /// **'Says every payment out loud, even when no one is looking at a screen'**
+  String get soundboxPitch1;
+
+  /// No description provided for @soundboxPitch2.
+  ///
+  /// In en, this message translates to:
+  /// **'Works with payments from any Cambodian bank'**
+  String get soundboxPitch2;
+
+  /// No description provided for @soundboxPitch3.
+  ///
+  /// In en, this message translates to:
+  /// **'Speaks Khmer, English or Chinese'**
+  String get soundboxPitch3;
+
+  /// No description provided for @soundboxOrderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Need one? Contact MysoftKH support.'**
+  String get soundboxOrderHint;
+
+  /// No description provided for @activateSoundbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate soundbox'**
+  String get activateSoundbox;
+
+  /// No description provided for @scanLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan the box label'**
+  String get scanLabel;
+
+  /// No description provided for @scanLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the QR on the soundbox box.'**
+  String get scanLabelHint;
+
+  /// No description provided for @notALabel.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a soundbox label.'**
+  String get notALabel;
+
+  /// No description provided for @serialNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial number'**
+  String get serialNumber;
+
+  /// No description provided for @claimCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim code'**
+  String get claimCode;
+
+  /// No description provided for @claimCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'8 characters on the box label, e.g. K7QF-2M9X'**
+  String get claimCodeHint;
+
+  /// No description provided for @soundboxOutlet.
+  ///
+  /// In en, this message translates to:
+  /// **'Announces payments of'**
+  String get soundboxOutlet;
+
+  /// No description provided for @soundboxName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (optional)'**
+  String get soundboxName;
+
+  /// No description provided for @soundboxLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcement language'**
+  String get soundboxLanguage;
+
+  /// No description provided for @soundboxActivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soundbox activated'**
+  String get soundboxActivated;
+
+  /// No description provided for @playTestSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Play test sound'**
+  String get playTestSound;
+
+  /// No description provided for @testSoundSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Test sound sent'**
+  String get testSoundSent;
+
+  /// No description provided for @testSoundOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent, but the soundbox is offline. Check its power and connection.'**
+  String get testSoundOffline;
+
+  /// No description provided for @soundboxOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get soundboxOnline;
+
+  /// No description provided for @invalidClaimCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the claim code: 8 letters and digits.'**
+  String get invalidClaimCode;
+
+  /// No description provided for @invalidSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the serial number.'**
+  String get invalidSerial;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera is not available. Type the serial number and claim code instead.'**
+  String get cameraUnavailable;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
 }
 
 class _AppLocalizationsDelegate

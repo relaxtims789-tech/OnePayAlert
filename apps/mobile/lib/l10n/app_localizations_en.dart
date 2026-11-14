@@ -359,4 +359,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fromPhone => 'From phone';
+
+  @override
+  String get soundboxes => 'Soundboxes';
+
+  @override
+  String get soundboxesHint => 'Speakers that announce payments at the counter';
+
+  @override
+  String get soundboxPitchTitle => 'Get a soundbox for your counter';
+
+  @override
+  String get soundboxPitch1 =>
+      'Says every payment out loud, even when no one is looking at a screen';
+
+  @override
+  String get soundboxPitch2 => 'Works with payments from any Cambodian bank';
+
+  @override
+  String get soundboxPitch3 => 'Speaks Khmer, English or Chinese';
+
+  @override
+  String get soundboxOrderHint => 'Need one? Contact MysoftKH support.';
+
+  @override
+  String get activateSoundbox => 'Activate soundbox';
+
+  @override
+  String get scanLabel => 'Scan the box label';
+
+  @override
+  String get scanLabelHint => 'Point the camera at the QR on the soundbox box.';
+
+  @override
+  String get notALabel => 'This is not a soundbox label.';
+
+  @override
+  String get serialNumber => 'Serial number';
+
+  @override
+  String get claimCode => 'Claim code';
+
+  @override
+  String get claimCodeHint => '8 characters on the box label, e.g. K7QF-2M9X';
+
+  @override
+  String get soundboxOutlet => 'Announces payments of';
+
+  @override
+  String get soundboxName => 'Name (optional)';
+
+  @override
+  String get soundboxLanguage => 'Announcement language';
+
+  @override
+  String get soundboxActivated => 'Soundbox activated';
+
+  @override
+  String get playTestSound => 'Play test sound';
+
+  @override
+  String get testSoundSent => 'Test sound sent';
+
+  @override
+  String get testSoundOffline =>
+      'Sent, but the soundbox is offline. Check its power and connection.';
+
+  @override
+  String get soundboxOnline => 'Online';
+
+  @override
+  String get invalidClaimCode => 'Check the claim code: 8 letters and digits.';
+
+  @override
+  String get invalidSerial => 'Check the serial number.';
+
+  @override
+  String get cameraUnavailable =>
+      'The camera is not available. Type the serial number and claim code instead.';
+
+  @override
+  String get done => 'Done';
 }

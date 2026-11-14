@@ -21,7 +21,38 @@ _Last updated: 2026-11-14 — CI green on GitHub, per-account sign-in lockout_
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 79 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **111 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **28 browser e2e** (17 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **32 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 82 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **111 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **28 browser e2e** (17 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **37 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Soundbox activation in the mobile app
+
+Merchants can now add a soundbox from their phone with the box in hand, as Touch 'n Go does, instead of only from the web dashboard.
+
+- **The box label carries a QR** with the serial number and claim code together: `OPASB1:<serial>:<claim code>` (shared `soundboxLabelPayload` / `parseSoundboxLabel`). It is plain text on purpose, not a web link, so the claim code never lands in a browser history or a server log. The admin console shows this QR, ready to print, when MysoftKH registers a device.
+- **App → Settings → Soundboxes:**
+  - **Empty state:** sells the device ("works with payments from any Cambodian bank", Khmer/English/Chinese voice).
+  - **List:** each box with its outlet, language, battery and online status.
+  - **Activate (owners, admins, managers):**
+    - scan the box label, or type the serial and claim code (any case, dash optional);
+    - choose the outlet (or all outlets), an optional name and the language;
+    - activate, then play a test sound.
+  - Cashiers can view soundboxes but not add them.
+- **Claim code still required.** Unlike TNG's serial-only activation, someone who has only seen the serial cannot take the box.
+
+**Checked on the Android emulator:**
+- the Soundboxes screen in Khmer;
+- the scanner screen and Android's camera permission prompt;
+- declining the camera shows "type the serial and claim code instead";
+- a soundbox registered through the API was activated by typing its code in lowercase without the dash, then appeared as active, English, all outlets;
+- the test sound reported it offline (no real box attached).
+
+**Not checked:** scanning a printed label with a real camera. The emulator has no way to show it one; the label parsing is covered by tests.
+
+**Also fixed (found during this check):** the phone bank-alert listener did its work on Android's main thread. While the app was busy starting, Android waited 20 s for the listener and showed "One PayAlert isn't responding". The listener now only copies the notification on the main thread and does everything else in the background; the same install-and-launch sequence no longer stalls.
+
+**Tests:** 3 label tests (shared), 5 Flutter tests (label parser; scan fills both fields; activation with language and name; wrong scan and mistyped code are explained without calling the API; managers vs view-only staff), and the admin browser test now checks the label QR.
+
 
 ---
 

@@ -169,6 +169,10 @@ test('registers a soundbox, shows its credentials once, and can disable it', asy
   await expect(creds.getByTestId('mqtt-username')).toHaveText(serial);
   expect(((await creds.getByTestId('mqtt-password').textContent()) ?? '').length).toBeGreaterThanOrEqual(32);
   await expect(creds.getByTestId('claim-code')).toHaveText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  // The label QR carries serial and claim code together, for the merchant app to scan.
+  const code = (await creds.getByTestId('claim-code').textContent()) ?? '';
+  await expect(creds.getByTestId('label-qr')).toContainText(`OPASB1:${serial}:${code}`);
+  await expect(creds.getByTestId('label-qr').locator('svg')).toBeVisible();
   const password = (await creds.getByTestId('mqtt-password').textContent()) ?? '';
   await creds.getByRole('button', { name: 'I have saved them' }).click();
 

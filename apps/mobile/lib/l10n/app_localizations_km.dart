@@ -359,4 +359,85 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get fromPhone => 'ពីទូរស័ព្ទ';
+
+  @override
+  String get soundboxes => 'Soundbox';
+
+  @override
+  String get soundboxesHint => 'ឧបករណ៍បំពងសំឡេងប្រកាសការទូទាត់នៅតុគិតលុយ';
+
+  @override
+  String get soundboxPitchTitle => 'យក Soundbox សម្រាប់តុគិតលុយរបស់អ្នក';
+
+  @override
+  String get soundboxPitch1 => 'និយាយរាល់ការទូទាត់ ទោះគ្មាននរណាមើលអេក្រង់ក៏ដោយ';
+
+  @override
+  String get soundboxPitch2 =>
+      'ដំណើរការជាមួយការទូទាត់ពីធនាគារណាមួយក្នុងកម្ពុជា';
+
+  @override
+  String get soundboxPitch3 => 'និយាយភាសាខ្មែរ អង់គ្លេស ឬចិន';
+
+  @override
+  String get soundboxOrderHint => 'ត្រូវការ? ទាក់ទងផ្នែកជំនួយ MysoftKH។';
+
+  @override
+  String get activateSoundbox => 'ដំណើរការ Soundbox';
+
+  @override
+  String get scanLabel => 'ស្កេនស្លាកលើប្រអប់';
+
+  @override
+  String get scanLabelHint => 'តម្រង់កាមេរ៉ាទៅ QR លើប្រអប់ Soundbox។';
+
+  @override
+  String get notALabel => 'នេះមិនមែនជាស្លាក Soundbox ទេ។';
+
+  @override
+  String get serialNumber => 'លេខស៊េរី';
+
+  @override
+  String get claimCode => 'លេខកូដ';
+
+  @override
+  String get claimCodeHint => '8 តួលើស្លាកប្រអប់ ឧ. K7QF-2M9X';
+
+  @override
+  String get soundboxOutlet => 'ប្រកាសការទូទាត់របស់';
+
+  @override
+  String get soundboxName => 'ឈ្មោះ (ស្រេចចិត្ត)';
+
+  @override
+  String get soundboxLanguage => 'ភាសាប្រកាស';
+
+  @override
+  String get soundboxActivated => 'Soundbox ដំណើរការហើយ';
+
+  @override
+  String get playTestSound => 'ចាក់សំឡេងសាកល្បង';
+
+  @override
+  String get testSoundSent => 'បានផ្ញើសំឡេងសាកល្បង';
+
+  @override
+  String get testSoundOffline =>
+      'បានផ្ញើ ប៉ុន្តែ Soundbox ក្រៅបណ្ដាញ។ សូមពិនិត្យថាមពល និងការភ្ជាប់។';
+
+  @override
+  String get soundboxOnline => 'អនឡាញ';
+
+  @override
+  String get invalidClaimCode => 'សូមពិនិត្យលេខកូដ៖ អក្សរ និងលេខ 8 តួ។';
+
+  @override
+  String get invalidSerial => 'សូមពិនិត្យលេខស៊េរី។';
+
+  @override
+  String get cameraUnavailable =>
+      'កាមេរ៉ាមិនអាចប្រើបាន។ សូមវាយលេខស៊េរី និងលេខកូដជំនួសវិញ។';
+
+  @override
+  String get done => 'រួចរាល់';
 }

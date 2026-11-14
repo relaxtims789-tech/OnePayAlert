@@ -53,6 +53,13 @@ class DemoPill extends StatelessWidget {
   Widget build(BuildContext context) => Pill(AppLocalizations.of(context).demo, fg: Brand.pending, bg: Brand.pendingBg);
 }
 
+/// A payment read from a bank app notification on a merchant phone, not confirmed by the bank.
+class FromPhonePill extends StatelessWidget {
+  const FromPhonePill({super.key});
+  @override
+  Widget build(BuildContext context) => Pill(AppLocalizations.of(context).fromPhone, fg: Brand.ink2, bg: Brand.surface);
+}
+
 class LiveDot extends StatelessWidget {
   const LiveDot(this.status, {super.key});
   final RealtimeStatus status;
@@ -102,6 +109,7 @@ class TxnTile extends StatelessWidget {
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, color: Brand.ink)),
                 ),
                 if (txn.isSimulated) ...[const SizedBox(width: 6), const DemoPill()],
+                if (txn.reported) ...[const SizedBox(width: 6), const FromPhonePill()],
               ]),
               const SizedBox(height: 2),
               Text('${formatDateTime(txn.occurredAt, locale)} · ${txn.providerCode}',
@@ -150,6 +158,7 @@ Future<void> showTxnDetails(BuildContext context, Txn txn, String locale) {
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 StatusPill(txn.status),
                 if (txn.isSimulated) ...[const SizedBox(width: 6), const DemoPill()],
+                if (txn.reported) ...[const SizedBox(width: 6), const FromPhonePill()],
               ]),
             ]),
           ),

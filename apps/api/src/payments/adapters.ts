@@ -135,6 +135,14 @@ export const ADAPTERS: Readonly<Record<string, ProviderAdapter>> = {
     verifySignature: () => false,
     parse: parseOnePayV1,
   },
+  // Phone bank alerts: the relay endpoint parses the bank notification and hands over a v1-shaped event.
+  [AdapterKey.PHONE_RELAY]: {
+    key: AdapterKey.PHONE_RELAY,
+    acceptsPublicWebhooks: false,
+    demoOnly: false,
+    verifySignature: () => false,
+    parse: parseOnePayV1,
+  },
   [AdapterKey.SIMULATOR]: {
     key: AdapterKey.SIMULATOR,
     acceptsPublicWebhooks: false,

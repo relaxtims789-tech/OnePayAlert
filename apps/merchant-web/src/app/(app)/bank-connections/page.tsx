@@ -6,10 +6,11 @@ import {
   type BankConnectionWithSecretDto,
   type Paginated,
   type PaymentProviderDto,
+  type RelayPhoneDto,
 } from '@onepay/shared';
 import { Alert, Badge, Button, Card, EmptyState, ErrorState, Field, Input, Modal, Select, Skeleton, cn, useToast } from '@onepay/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, FlaskConical, Landmark, Plus, RefreshCw, Unplug } from 'lucide-react';
+import { Check, Copy, FlaskConical, Landmark, Plus, RefreshCw, Smartphone, Unplug } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/page-header';
@@ -183,6 +184,7 @@ function BankConnectionsInner() {
                   <dt className="text-ink-3">{t('banks.lastSynced')}</dt>
                   <dd className="text-right text-ink">{c.lastSyncedAt ? dateTime(c.lastSyncedAt, locale) : t('banks.never')}</dd>
                 </dl>
+                {c.provider.code === 'PHONE_ALERTS' && live ? <RelayPhones connectionId={c.id} canManage={canManage} /> : null}
                 {c.status === 'PENDING' && !c.webhookUrl && !c.provider.isDemo ? (
                   <Alert tone="warning" className="mt-4">
                     {t('banks.pendingIntegration')}
@@ -423,3 +425,56 @@ export default function BankConnectionsPage() {
     </Suspense>
   );
 }
+
+/** Phones forwarding bank app alerts into this connection; set up from the Android app. */
+function RelayPhones({ connectionId, canManage }: { connectionId: string; canManage: boolean }) {
+  const { t, locale } = useI18n();
+  const qc = useQueryClient();
+  const { show } = useToast();
+  const toastError = useErrorToast();
+  const phones = useQuery({
+    queryKey: ['relay-phones', connectionId],
+    queryFn: () => api.get<RelayPhoneDto[]>('relay/phones', { bankConnectionId: connectionId }),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.del(`relay/phones/${id}`),
+    onSuccess: async () => {
+      show({ tone: 'success', title: t('banks.phoneRemoved') });
+      await qc.invalidateQueries({ queryKey: ['relay-phones', connectionId] });
+    },
+    onError: toastError,
+  });
+  return (
+    <div className="mt-4 rounded-xl border border-line p-3" data-testid="relay-phones">
+      <p className="text-sm font-medium text-ink">{t('banks.phonesTitle')}</p>
+      {phones.isPending ? (
+        <Skeleton className="mt-2 h-8" />
+      ) : phones.isError ? (
+        <p className="mt-1 text-sm text-failed">{errorText(phones.error, t)}</p>
+      ) : phones.data.length === 0 ? (
+        <p className="mt-1 text-sm text-ink-2">{t('banks.phonesEmpty')}</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-line">
+          {phones.data.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 py-2 text-sm">
+              <Smartphone className="size-4 shrink-0 text-ink-3" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-ink">{p.name}</span>
+                <span className="block text-xs text-ink-3">
+                  {t('banks.phoneLastSeen')}: {p.lastSeenAt ? dateTime(p.lastSeenAt, locale) : t('banks.never')}
+                </span>
+              </span>
+              {canManage ? (
+                <Button size="sm" variant="ghost" loading={remove.isPending && remove.variables === p.id} onClick={() => remove.mutate(p.id)}>
+                  {t('banks.removePhone')}
+                </Button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-xs text-ink-3">{t('banks.phonesHint')}</p>
+    </div>
+  );
+}
+

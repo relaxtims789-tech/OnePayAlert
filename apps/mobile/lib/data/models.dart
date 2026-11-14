@@ -78,6 +78,7 @@ class Txn {
     required this.payerAccountMasked,
     required this.reference,
     required this.isSimulated,
+    this.reported = false,
     required this.occurredAt,
   });
   final String id;
@@ -91,6 +92,8 @@ class Txn {
   final String? payerAccountMasked;
   final String? reference;
   final bool isSimulated;
+  /// Read from a bank app notification on a merchant phone (not confirmed by the bank).
+  final bool reported;
   final DateTime occurredAt;
 
   factory Txn.fromJson(Map<String, dynamic> j) => Txn(
@@ -105,6 +108,7 @@ class Txn {
         payerAccountMasked: j['payerAccountMasked'] as String?,
         reference: j['reference'] as String?,
         isSimulated: j['isSimulated'] as bool? ?? false,
+        reported: j['verification'] == 'REPORTED',
         occurredAt: DateTime.parse(j['occurredAt'] as String),
       );
 }
@@ -245,4 +249,19 @@ class KhqrCharge {
         payerAccount: j['payerAccount'] as String?,
         simulated: j['simulated'] as bool? ?? false,
       );
+}
+
+/// A "Bank alerts on your phone" connection this phone can forward to.
+class RelayConnection {
+  const RelayConnection({required this.id, required this.displayName, required this.currency});
+  final String id;
+  final String displayName;
+  final String currency;
+}
+
+/// Returned once when this phone is set up; the secret stays on the phone.
+class RelayEnrollment {
+  const RelayEnrollment({required this.relayId, required this.secret});
+  final String relayId;
+  final String secret;
 }

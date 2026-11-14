@@ -1,11 +1,12 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { AuthTokens } from '@onepay/shared';
+import type { AuthTokens, RelayNotificationInput, RelayPhoneEnrollment } from '@onepay/shared';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { MQTT_BRIDGE, type MqttBridge } from '../src/devices/mqtt.bridge';
 import { BAKONG_CLIENT, type BakongClient } from '../src/khqr/bakong.client';
 import { PUSH_SENDER, type PushSender } from '../src/notifications/push.sender';
+import { signOnePayV1 } from '../src/payments/adapters';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { configureApp } from '../src/setup';
 
@@ -88,3 +89,35 @@ export async function waitFor<T>(fn: () => Promise<T | null | undefined | false>
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Phone bank alerts: a "Bank alerts on your phone" connection, and a phone set up on it. */
+export async function relayConnection(app: INestApplication, tokens: AuthTokens, currency: 'USD' | 'KHR' = 'USD', displayName = `Phone alerts ${currency}`) {
+  const http = app.getHttpServer();
+  const providers = (await request(http).get(`${API}/payment-providers`).set('Authorization', bearer(tokens)).expect(200)).body as { id: string; code: string }[];
+  const provider = providers.find((p) => p.code === 'PHONE_ALERTS')!;
+  return (await request(http).post(`${API}/bank-connections`).set('Authorization', bearer(tokens)).send({ providerId: provider.id, displayName, currency }).expect(201))
+    .body as { id: string; status: string; currency: string };
+}
+
+export async function enrollPhone(app: INestApplication, tokens: AuthTokens, bankConnectionId: string, name = 'Owner phone') {
+  return (await request(app.getHttpServer()).post(`${API}/relay/phones`).set('Authorization', bearer(tokens)).send({ bankConnectionId, name }).expect(201))
+    .body as RelayPhoneEnrollment;
+}
+
+/** Sends a notification the way the Android app does: HMAC-signed with the phone's secret. */
+export function relayNotify(
+  app: INestApplication,
+  phone: { relayId: string; secret: string },
+  body: Partial<RelayNotificationInput> & { text: string },
+  opts: { timestamp?: number; secret?: string } = {},
+) {
+  const payload = JSON.stringify({ key: `k-${Date.now()}-${Math.random().toString(36).slice(2)}`, app: 'com.example.bank', postedAt: new Date().toISOString(), ...body });
+  const ts = opts.timestamp ?? Math.floor(Date.now() / 1000);
+  return request(app.getHttpServer())
+    .post(`${API}/relay/notifications`)
+    .set('Content-Type', 'application/json')
+    .set('x-onepay-relay-id', phone.relayId)
+    .set('x-onepay-timestamp', String(ts))
+    .set('x-onepay-signature', signOnePayV1(opts.secret ?? phone.secret, ts, payload))
+    .send(payload);
+}

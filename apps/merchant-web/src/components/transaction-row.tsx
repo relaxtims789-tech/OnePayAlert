@@ -5,7 +5,7 @@ import { cn } from '@onepay/ui';
 import { ArrowDownLeft } from 'lucide-react';
 import { dateTime, money } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { DemoBadge, TxnStatus } from './status';
+import { DemoBadge, FromPhoneBadge, TxnStatus } from './status';
 
 /** Compact payment row used by the live feed. */
 export function TransactionRow({ txn, fresh, outletName }: { txn: TransactionDto; fresh?: boolean; outletName?: string }) {
@@ -22,7 +22,8 @@ export function TransactionRow({ txn, fresh, outletName }: { txn: TransactionDto
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-ink">
-          {txn.payerName ?? txn.reference ?? txn.providerTxnId} {txn.isSimulated ? <DemoBadge /> : null}
+          {txn.payerName ?? txn.reference ?? txn.providerTxnId} {txn.isSimulated ? <DemoBadge /> : null}{' '}
+          {txn.verification === 'REPORTED' ? <FromPhoneBadge /> : null}
         </p>
         <p className="truncate text-xs text-ink-3">
           {dateTime(txn.occurredAt, locale)} · {txn.providerCode}

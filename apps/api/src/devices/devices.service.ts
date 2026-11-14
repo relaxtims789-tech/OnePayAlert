@@ -39,6 +39,7 @@ export function toDeviceDto(d: Device): DeviceDto {
     status: d.status,
     locale: d.locale,
     volume: d.volume,
+    announceReported: d.announceReported,
     online: d.online,
     lastSeenAt: d.lastSeenAt?.toISOString() ?? null,
     firmware: d.firmware,
@@ -249,7 +250,7 @@ export class DevicesService implements OnModuleInit {
   async update(
     user: TenantUser,
     id: string,
-    dto: { name?: string | null; outletId?: string | null; locale?: Locale; volume?: number },
+    dto: { name?: string | null; outletId?: string | null; locale?: Locale; volume?: number; announceReported?: boolean },
     ip: string | null,
   ): Promise<DeviceDto> {
     const device = await this.findOwned(user, id);
@@ -264,6 +265,7 @@ export class DevicesService implements OnModuleInit {
           ...(dto.outletId !== undefined ? { outletId: dto.outletId } : {}),
           ...(dto.locale ? { locale: dto.locale } : {}),
           ...(dto.volume !== undefined ? { volume: dto.volume } : {}),
+          ...(dto.announceReported !== undefined ? { announceReported: dto.announceReported } : {}),
         },
       });
       await this.audit.log(
@@ -311,6 +313,8 @@ export class DevicesService implements OnModuleInit {
         companyId: txn.companyId,
         status: 'ACTIVE',
         OR: [{ outletId: null }, ...(txn.outletId ? [{ outletId: txn.outletId }] : [])],
+        // Payments read from a phone bank alert are spoken only where the merchant allows it.
+        ...(txn.verification === 'REPORTED' ? { announceReported: true } : {}),
       },
     });
     let sent = 0;
@@ -326,6 +330,7 @@ export class DevicesService implements OnModuleInit {
         locale: d.locale,
         volume: d.volume,
         simulated: txn.isSimulated,
+        verified: txn.verification === 'VERIFIED',
         occurredAt: txn.occurredAt,
       });
       if (ok) sent++;

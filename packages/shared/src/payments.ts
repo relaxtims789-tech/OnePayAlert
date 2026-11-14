@@ -8,6 +8,8 @@ export const AdapterKey = {
   SIMULATOR: 'SIMULATOR',
   /** Bakong KHQR: dynamic QR codes, payment confirmed by polling the Bakong Open API. */
   BAKONG_KHQR: 'BAKONG_KHQR',
+  /** Phone bank alerts: a merchant phone forwards bank app notifications (reported, not bank-confirmed). */
+  PHONE_RELAY: 'PHONE_RELAY',
 } as const;
 export type AdapterKey = (typeof AdapterKey)[keyof typeof AdapterKey];
 
@@ -68,9 +70,13 @@ export interface TransactionDto {
   reference: string | null;
   description: string | null;
   isSimulated: boolean;
+  /** VERIFIED = confirmed by the bank, Bakong or a signed gateway; REPORTED = read from a bank app notification on the merchant's phone. */
+  verification: TransactionVerification;
   occurredAt: string;
   receivedAt: string;
 }
+
+export type TransactionVerification = 'VERIFIED' | 'REPORTED';
 
 export interface CurrencySummary {
   currency: Currency;

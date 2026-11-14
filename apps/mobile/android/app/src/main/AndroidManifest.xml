@@ -29,6 +29,17 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Phone bank alerts: reads notifications only after the merchant grants notification access,
+             and forwards only those of the bank apps they choose. -->
+        <service
+            android:name=".BankAlertListener"
+            android:label="One PayAlert bank alerts"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

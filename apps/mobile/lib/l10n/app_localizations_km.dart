@@ -282,4 +282,81 @@ class AppLocalizationsKm extends AppLocalizations {
 
   @override
   String get collectAmountInvalidKhr => 'សូមបញ្ចូលចំនួនរៀលគត់';
+
+  @override
+  String get bankAlerts => 'ការជូនដំណឹងធនាគារលើទូរស័ព្ទនេះ';
+
+  @override
+  String get bankAlertsHint =>
+      'បញ្ជូនការជូនដំណឹងទូទាត់ពីកម្មវិធីធនាគារ ទៅ Soundbox និងផ្ទាំងគ្រប់គ្រង';
+
+  @override
+  String get bankAlertsIntro =>
+      'ដំណើរការជាមួយកម្មវិធីធនាគារណាមួយលើទូរស័ព្ទនេះ (ABA, ACLEDA, Wing…)។ ការទូទាត់ទាំងនេះមានស្លាក «ពីទូរស័ព្ទ» ព្រោះធនាគារមិនបានបញ្ជាក់ដោយផ្ទាល់។';
+
+  @override
+  String get bankAlertsAccount => 'កត់ត្រាការទូទាត់ក្នុង';
+
+  @override
+  String bankAlertsCreate(String currency) {
+    return 'បង្កើតការភ្ជាប់ $currency';
+  }
+
+  @override
+  String get bankAlertsPhoneName => 'ឈ្មោះទូរស័ព្ទនេះ';
+
+  @override
+  String get bankAlertsSetUp => 'រៀបចំទូរស័ព្ទនេះ';
+
+  @override
+  String get bankAlertsAccess => 'សិទ្ធិអានការជូនដំណឹង';
+
+  @override
+  String get bankAlertsAccessOn => 'បានអនុញ្ញាត';
+
+  @override
+  String get bankAlertsAccessOff =>
+      'អនុញ្ញាតឱ្យ One PayAlert អានការជូនដំណឹង រួចត្រឡប់មកវិញ។';
+
+  @override
+  String get bankAlertsOpenSettings => 'បើកការកំណត់';
+
+  @override
+  String get bankAlertsApps => 'កម្មវិធីធនាគារដែលត្រូវបញ្ជូន';
+
+  @override
+  String get bankAlertsAppsHint =>
+      'មានតែកម្មវិធីដែលអ្នកធីកប៉ុណ្ណោះដែលត្រូវបញ្ជូន។ មិនឃើញ? រង់ចាំការជូនដំណឹងណាមួយពីកម្មវិធីធនាគាររបស់អ្នក រួចអូសចុះដើម្បីផ្ទុកឡើងវិញ។';
+
+  @override
+  String get bankAlertsActivity => 'សកម្មភាព';
+
+  @override
+  String bankAlertsLast(String time) {
+    return 'ចុងក្រោយ៖ $time';
+  }
+
+  @override
+  String bankAlertsCounts(int accepted, int ignored, int failed) {
+    return 'ការទូទាត់ $accepted · រំលង $ignored · បរាជ័យ $failed';
+  }
+
+  @override
+  String bankAlertsQueued(int count) {
+    return '$count កំពុងរង់ចាំផ្ញើ';
+  }
+
+  @override
+  String get bankAlertsRemoved =>
+      'ទូរស័ព្ទនេះត្រូវបានដកចេញក្នុងផ្ទាំងគ្រប់គ្រង។ សូមរៀបចំម្តងទៀតដើម្បីបន្តបញ្ជូន។';
+
+  @override
+  String get bankAlertsStop => 'ឈប់បញ្ជូនពីទូរស័ព្ទនេះ';
+
+  @override
+  String get bankAlertsKeepOn =>
+      'រក្សាទូរស័ព្ទនេះឱ្យបើក មានអ៊ីនធឺណិត និងចូលកម្មវិធីធនាគាររួច។';
+
+  @override
+  String get fromPhone => 'ពីទូរស័ព្ទ';
 }

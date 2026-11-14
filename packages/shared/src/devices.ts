@@ -38,6 +38,8 @@ export type DeviceCommand =
       locale: Locale;
       volume: number;
       simulated: boolean;
+      /** false = read from the merchant's phone, not confirmed by the bank. */
+      verified: boolean;
       occurredAt: string;
     }
   | { type: 'test'; text: string; locale: Locale; volume: number }
@@ -60,6 +62,8 @@ export interface DeviceDto {
   status: DeviceStatus;
   locale: Locale;
   volume: number;
+  /** Also speak payments reported by a phone bank alert (not confirmed by the bank). */
+  announceReported: boolean;
   online: boolean;
   lastSeenAt: string | null;
   firmware: string | null;

@@ -50,5 +50,8 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 - Dynamic KHQR codes for an exact amount (web and mobile), confirmed with the Bakong Open API and recorded through the normal payment pipeline. Mismatched payments are held for review. Simulated outside production when there is no Bakong token; off in production without one.
 - Still open: the first run against the real Bakong API (needs a token), token-expiry reminders, official KHQR artwork (see PROJECT_STATUS.md).
 
+## Phone bank alerts ✅
+- Android phones forward chosen bank apps' "money received" notifications; payments from any bank reach the soundbox, marked REPORTED. Still open: real notification samples per bank, Play Store declaration (see PROJECT_STATUS.md).
+
 ## Next: pilot
 - Get a Bakong token and run KHQR live, deploy the demo environment, run CI on GitHub, onboard the first merchants, and a physical soundbox.

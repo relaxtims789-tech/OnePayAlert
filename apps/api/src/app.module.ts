@@ -14,6 +14,7 @@ import { AppConfigModule } from './config/config.module';
 import { EmployeesModule } from './employees/employees.module';
 import { HealthController } from './health/health.controller';
 import { InfraModule } from './infra/infra.module';
+import { RelayModule } from './relay/relay.module';
 import { KhqrModule } from './khqr/khqr.module';
 import { MailModule } from './mail/mail.service';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -55,6 +56,7 @@ class AuditModule {}
     TransactionsModule,
     ReportsModule,
     KhqrModule,
+    RelayModule,
   ],
   controllers: [HealthController],
   providers: [

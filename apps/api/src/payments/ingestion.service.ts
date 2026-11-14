@@ -75,7 +75,7 @@ export class IngestionService {
   async accept(
     connection: BankConnection & { provider: PaymentProvider },
     payload: unknown,
-    source: 'WEBHOOK' | 'SIMULATOR' | 'POLLER',
+    source: 'WEBHOOK' | 'SIMULATOR' | 'POLLER' | 'RELAY',
   ): Promise<AcceptResult> {
     const adapter = adapterFor(connection.provider.adapterKey);
     if (!adapter) throw new BadRequestException('Provider has no integration');

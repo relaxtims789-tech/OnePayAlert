@@ -31,6 +31,7 @@ export function toTransactionDto(t: TransactionWithProvider): TransactionDto {
     reference: t.reference,
     description: t.description,
     isSimulated: t.isSimulated,
+    verification: t.verification,
     occurredAt: t.occurredAt.toISOString(),
     receivedAt: t.receivedAt.toISOString(),
   };

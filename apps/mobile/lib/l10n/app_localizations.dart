@@ -603,6 +603,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a whole riel amount'**
   String get collectAmountInvalidKhr;
+
+  /// No description provided for @bankAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank alerts on this phone'**
+  String get bankAlerts;
+
+  /// No description provided for @bankAlertsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward your bank app\'s payment alerts to the soundbox and dashboard'**
+  String get bankAlertsHint;
+
+  /// No description provided for @bankAlertsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Works with any bank app on this phone (ABA, ACLEDA, Wing…). These payments are marked \"From phone\" because the bank did not confirm them directly.'**
+  String get bankAlertsIntro;
+
+  /// No description provided for @bankAlertsAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Record payments in'**
+  String get bankAlertsAccount;
+
+  /// No description provided for @bankAlertsCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create {currency} connection'**
+  String bankAlertsCreate(String currency);
+
+  /// No description provided for @bankAlertsPhoneName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name of this phone'**
+  String get bankAlertsPhoneName;
+
+  /// No description provided for @bankAlertsSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up this phone'**
+  String get bankAlertsSetUp;
+
+  /// No description provided for @bankAlertsAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification access'**
+  String get bankAlertsAccess;
+
+  /// No description provided for @bankAlertsAccessOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowed'**
+  String get bankAlertsAccessOn;
+
+  /// No description provided for @bankAlertsAccessOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow One PayAlert to read notifications, then come back.'**
+  String get bankAlertsAccessOff;
+
+  /// No description provided for @bankAlertsOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get bankAlertsOpenSettings;
+
+  /// No description provided for @bankAlertsApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank apps to forward'**
+  String get bankAlertsApps;
+
+  /// No description provided for @bankAlertsAppsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the apps you tick are sent. Not listed? Wait for any notification from your bank app, then pull down to refresh.'**
+  String get bankAlertsAppsHint;
+
+  /// No description provided for @bankAlertsActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get bankAlertsActivity;
+
+  /// No description provided for @bankAlertsLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last: {time}'**
+  String bankAlertsLast(String time);
+
+  /// No description provided for @bankAlertsCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'{accepted} payments · {ignored} skipped · {failed} failed'**
+  String bankAlertsCounts(int accepted, int ignored, int failed);
+
+  /// No description provided for @bankAlertsQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} waiting to send'**
+  String bankAlertsQueued(int count);
+
+  /// No description provided for @bankAlertsRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone was removed in the dashboard. Set it up again to keep forwarding.'**
+  String get bankAlertsRemoved;
+
+  /// No description provided for @bankAlertsStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop forwarding on this phone'**
+  String get bankAlertsStop;
+
+  /// No description provided for @bankAlertsKeepOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this phone on, online and signed in to your bank app.'**
+  String get bankAlertsKeepOn;
+
+  /// No description provided for @fromPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'From phone'**
+  String get fromPhone;
 }
 
 class _AppLocalizationsDelegate

@@ -282,4 +282,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectAmountInvalidKhr => 'Enter a whole riel amount';
+
+  @override
+  String get bankAlerts => 'Bank alerts on this phone';
+
+  @override
+  String get bankAlertsHint =>
+      'Forward your bank app\'s payment alerts to the soundbox and dashboard';
+
+  @override
+  String get bankAlertsIntro =>
+      'Works with any bank app on this phone (ABA, ACLEDA, Wing…). These payments are marked \"From phone\" because the bank did not confirm them directly.';
+
+  @override
+  String get bankAlertsAccount => 'Record payments in';
+
+  @override
+  String bankAlertsCreate(String currency) {
+    return 'Create $currency connection';
+  }
+
+  @override
+  String get bankAlertsPhoneName => 'Name of this phone';
+
+  @override
+  String get bankAlertsSetUp => 'Set up this phone';
+
+  @override
+  String get bankAlertsAccess => 'Notification access';
+
+  @override
+  String get bankAlertsAccessOn => 'Allowed';
+
+  @override
+  String get bankAlertsAccessOff =>
+      'Allow One PayAlert to read notifications, then come back.';
+
+  @override
+  String get bankAlertsOpenSettings => 'Open settings';
+
+  @override
+  String get bankAlertsApps => 'Bank apps to forward';
+
+  @override
+  String get bankAlertsAppsHint =>
+      'Only the apps you tick are sent. Not listed? Wait for any notification from your bank app, then pull down to refresh.';
+
+  @override
+  String get bankAlertsActivity => 'Activity';
+
+  @override
+  String bankAlertsLast(String time) {
+    return 'Last: $time';
+  }
+
+  @override
+  String bankAlertsCounts(int accepted, int ignored, int failed) {
+    return '$accepted payments · $ignored skipped · $failed failed';
+  }
+
+  @override
+  String bankAlertsQueued(int count) {
+    return '$count waiting to send';
+  }
+
+  @override
+  String get bankAlertsRemoved =>
+      'This phone was removed in the dashboard. Set it up again to keep forwarding.';
+
+  @override
+  String get bankAlertsStop => 'Stop forwarding on this phone';
+
+  @override
+  String get bankAlertsKeepOn =>
+      'Keep this phone on, online and signed in to your bank app.';
+
+  @override
+  String get fromPhone => 'From phone';
 }

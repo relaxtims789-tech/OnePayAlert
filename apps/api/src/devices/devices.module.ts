@@ -74,6 +74,9 @@ export class UpdateDeviceDto {
 
   @ApiPropertyOptional({ minimum: 0, maximum: 100 }) @IsOptional() @IsInt() @Min(0) @Max(100)
   volume?: number;
+
+  @ApiPropertyOptional({ description: 'Also speak payments reported by a phone bank alert (not confirmed by the bank)' }) @IsOptional() @IsBoolean()
+  announceReported?: boolean;
 }
 
 @ApiTags('Soundbox devices')

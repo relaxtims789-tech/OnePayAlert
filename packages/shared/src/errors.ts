@@ -200,6 +200,12 @@ export const API_ERRORS = {
   },
 
   // ── KHQR collection
+  RELAY_CONNECTION_REQUIRED: {
+    en: 'Choose a "Bank alerts on your phone" connection first.',
+    km: 'សូមជ្រើសរើសការភ្ជាប់ «ការជូនដំណឹងធនាគារលើទូរស័ព្ទ» ជាមុនសិន។',
+    zh: '请先选择一个“手机银行通知”连接。',
+  },
+  RELAY_PHONE_NOT_FOUND: { en: 'This phone is not set up for bank alerts.', km: 'ទូរស័ព្ទនេះមិនទាន់បានរៀបចំសម្រាប់ការជូនដំណឹងធនាគារទេ។', zh: '此手机尚未设置银行通知。' },
   KHQR_NOT_AVAILABLE: {
     en: 'KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.',
     km: 'ការទូទាត់ KHQR មិនទាន់អាចប្រើបានទេ។ MysoftKH ត្រូវភ្ជាប់ប្រព័ន្ធទៅ Bakong ជាមុនសិន។',

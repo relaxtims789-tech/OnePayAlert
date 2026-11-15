@@ -23,6 +23,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { PlatformModule } from './platform/platform.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
+import { PlatformSettingsModule } from './settings/platform-settings.controller';
+import { PlatformSettingsCoreModule } from './settings/platform-settings.service';
 import { TransactionsModule } from './transactions/transactions.module';
 
 @Global()
@@ -34,8 +36,9 @@ class AuditModule {}
     AppConfigModule,
     PrismaModule,
     InfraModule,
-    MailModule,
     AuditModule,
+    PlatformSettingsCoreModule,
+    MailModule,
     ThrottlerModule.forRootAsync({
       inject: [AppConfig],
       useFactory: (config: AppConfig) => ({
@@ -57,6 +60,7 @@ class AuditModule {}
     ReportsModule,
     KhqrModule,
     RelayModule,
+    PlatformSettingsModule,
   ],
   controllers: [HealthController],
   providers: [

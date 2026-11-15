@@ -16,6 +16,7 @@ export const keys = {
   providers: ['providers'] as const,
   audit: (p: unknown) => ['audit', p] as const,
   health: ['health'] as const,
+  settings: ['platform-settings'] as const,
 };
 
 export function useMe() {

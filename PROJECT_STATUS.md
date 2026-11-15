@@ -21,7 +21,40 @@ _Last updated: 2026-11-14 — CI green on GitHub, per-account sign-in lockout_
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 82 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **111 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **28 browser e2e** (17 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **37 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 89 shared + 9 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **118 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **30 browser e2e** (18 merchant + 12 admin, Playwright in Chrome against the real stack), and for the mobile app **37 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## System settings in the admin console
+
+The settings that used to need the server terminal can now be changed in the admin console, **System settings** (Super Admins only). Changes take effect at once, without restarting the server.
+
+| Setting | What it does |
+|---|---|
+| **Bakong API token** | Turns on real KHQR collection. The page shows whether Bakong is live, simulated (demo) or off, and the token's expiry date (read from the token), with a warning 14 days before. **Test with Bakong** asks Bakong whether it accepts the token. |
+| **Mail server (SMTP)** and **sender** | Password resets, lock warnings and invoices. **Send me a test email** sends one to the signed-in admin. |
+| **Invoice payment instructions** | The "how to pay MysoftKH" text merchants see with unpaid invoices. |
+
+- **Order of precedence:** a value saved in the console wins over the server's env file. **Use the server value instead** removes it, and the env file value (or the built-in default) is used again. Each setting shows where its value comes from.
+- **Secrets:** the Bakong token and the mail server are stored encrypted (AES-256-GCM with the data encryption key, like bank credentials). They are never sent back to the browser. The page shows only a hint: the token's last 4 characters, or the mail server without its password.
+- **Audit:** every save and removal is audited with the setting's name, never its value. Test results hide the secret from error messages.
+- **Several API instances:** each one picks up a change within 30 seconds.
+- **Not in the console:** the database, encryption and session keys and the domains stay in the env file, because the server needs them before it can read the database.
+
+**Tests:**
+- API: 7 end-to-end tests covering who may use it, encryption at rest, no secret in responses or the audit log, a token taking effect at once (KHQR switches to live), the Bakong and mail tests, and invoice text reaching merchants.
+- Admin browser: 1 test for the whole page.
+- Unit tests for reading a token's expiry and hiding the mail password.
+
+
+---
+
+## Staff accounts on the merchant site
+
+MysoftKH staff without a shop of their own (the Super Admin, support) could sign in on the merchant site and then saw empty pages and "You do not have permission to do this." Every merchant page needs a shop, so the merchant site now shows them a short notice instead: "This is a MysoftKH staff account", with a button to the admin console and Sign out (km/en/zh). The admin console address comes from `ADMIN_URL` at request time (Compose sets it from `ADMIN_DOMAIN`); without it, only Sign out is shown. Shop members are unaffected.
+
+**Tests:** a new browser test signs in as staff, sees the notice and the admin console link on every page, and signs out; the full merchant browser suite (18) passes.
+
 
 ---
 

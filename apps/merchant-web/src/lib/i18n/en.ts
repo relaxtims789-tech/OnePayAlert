@@ -419,6 +419,11 @@ export const en = {
     when: 'When',
     readOnly: 'Only owners and admins can edit the company profile.',
   },
+  staff: {
+    title: 'This is a MysoftKH staff account',
+    body: 'The merchant dashboard is for shops, and this account does not belong to one. Manage shops, soundboxes and billing in the admin console.',
+    openAdmin: 'Open the admin console',
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type Messages = typeof en;

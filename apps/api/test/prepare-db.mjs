@@ -33,3 +33,6 @@ const run = (cmd, e) => execSync(cmd, { cwd: apiDir, env: e, stdio: ['ignore', '
 run('npx prisma migrate deploy', owner);
 run('npx ts-node prisma/seed.ts', owner);
 run('node prisma/app-role.mjs', env);
+// Platform settings saved by a test (Bakong token, mail server) apply platform-wide: start every
+// run from the environment's values, even after a run that stopped before cleaning up.
+execSync('npx prisma db execute --stdin --schema prisma/schema.prisma', { cwd: apiDir, env: owner, input: 'DELETE FROM platform_settings;', stdio: ['pipe', 'ignore', 'inherit'] });

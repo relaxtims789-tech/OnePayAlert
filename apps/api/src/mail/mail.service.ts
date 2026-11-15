@@ -2,6 +2,7 @@ import { Global, Injectable, Logger, Module } from '@nestjs/common';
 import type { Locale } from '@onepay/shared';
 import { createTransport, type Transporter } from 'nodemailer';
 import { AppConfig } from '../config/app-config.service';
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 
 export interface MailMessage {
   to: string;
@@ -13,22 +14,39 @@ export interface MailMessage {
 /**
  * Outbound email. `smtp` delivers for real (mandatory in demo/production);
  * `log` keeps messages in an in-memory outbox and logs a redacted line (dev/test only).
+ * The mail server and sender come from the platform settings (admin console, else SMTP_URL /
+ * MAIL_FROM), so a new mail server takes effect on the next message without a restart.
  */
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transport: Transporter | null;
+  private transport: { url: string; transporter: Transporter } | null = null;
   /** Dev/test only: last messages sent with the `log` driver. */
   readonly outbox: MailMessage[] = [];
 
-  constructor(private readonly config: AppConfig) {
-    const url = config.get('SMTP_URL');
-    this.transport = config.get('MAIL_DRIVER') === 'smtp' && url ? createTransport(url) : null;
+  constructor(
+    private readonly config: AppConfig,
+    private readonly settings: PlatformSettingsService,
+  ) {}
+
+  get driver(): 'smtp' | 'log' {
+    return this.config.get('MAIL_DRIVER');
+  }
+
+  private transporter(): Transporter | null {
+    const url = this.settings.get('SMTP_URL');
+    if (this.driver !== 'smtp' || !url) return null;
+    if (this.transport?.url !== url) {
+      this.transport?.transporter.close();
+      this.transport = { url, transporter: createTransport(url) };
+    }
+    return this.transport.transporter;
   }
 
   async send(message: MailMessage): Promise<void> {
-    if (this.transport) {
-      await this.transport.sendMail({ from: this.config.get('MAIL_FROM'), ...message });
+    const transporter = this.transporter();
+    if (transporter) {
+      await transporter.sendMail({ from: this.settings.get('MAIL_FROM'), ...message });
       return;
     }
     this.outbox.push(message);

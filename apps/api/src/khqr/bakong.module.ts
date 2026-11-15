@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { bakongClientProvider } from './bakong.client';
+import { bakongClientProvider, bakongLiveFactoryProvider } from './bakong.client';
 
 /** The one Bakong Open API client, shared by bank connections (account checks) and KHQR charges. */
-@Module({ providers: [bakongClientProvider], exports: [bakongClientProvider] })
+@Module({ providers: [bakongLiveFactoryProvider, bakongClientProvider], exports: [bakongLiveFactoryProvider, bakongClientProvider] })
 export class BakongModule {}

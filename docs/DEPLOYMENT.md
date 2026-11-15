@@ -86,9 +86,21 @@ the same ACME account), set `MQTT_URL=mqtt://emqx:1883`, `MQTT_PASSWORD`, `MQTT_
 `EMQX_DASHBOARD_PASSWORD`, and start with `--profile soundbox`. Devices connect to
 `mqtts://<host>:8883` (see `docs/SOUNDBOX_PROTOCOL.md`).
 
+## System settings (admin console)
+
+The Bakong token, the mail server (`SMTP_URL`), the sender (`MAIL_FROM`) and the invoice payment
+text (`BILLING_PAYMENT_INSTRUCTIONS`) can be changed by a Super Admin in the admin console under
+**System settings**, without a restart. A value saved there wins over the env file. Secrets are
+stored encrypted with `DATA_ENCRYPTION_KEY` and never shown again, so keep that key safe: rotating it
+without re-saving these settings makes the server fall back to the env file values. Everything else
+(database, Redis, keys, domains) stays in the env file.
+
 ## Bakong KHQR
 
-Set `BAKONG_API_TOKEN` (register at https://api-bakong.nbc.gov.kh) and restart the API. The token
+Save the token in the admin console under **System settings → Bakong KHQR** (register at
+https://api-bakong.nbc.gov.kh). It takes effect at once, and **Test with Bakong** checks it. Setting
+`BAKONG_API_TOKEN` in the env file and restarting the API also works; a token saved in the console
+wins. The console shows the expiry date. The token
 expires: renew it before then, or new KHQR payments stay pending (the API logs every rejected call).
 Without a token, production has KHQR switched off and the demo environment simulates Bakong.
 `KHQR_POLL_INTERVAL_MS` (default 3000) sets how often open codes are checked; any number of API

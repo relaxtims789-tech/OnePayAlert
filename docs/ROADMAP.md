@@ -56,5 +56,8 @@ Done. See PROJECT_STATUS.md. Staff management and 2FA moved to Phase 8.
 ## Soundbox activation in the app ✅
 - Box-label QR (serial + claim code) printed from the admin console; merchants activate from the phone by scanning it, with outlet and language. Still open: in-app soundbox ordering.
 
+## System settings in the admin console ✅
+- Bakong token (with expiry and a live test), mail server and sender (with a test email), and invoice payment text: saved encrypted, used at once, audited.
+
 ## Next: pilot
 - Get a Bakong token and run KHQR live, deploy the demo environment, run CI on GitHub, onboard the first merchants, and a physical soundbox.

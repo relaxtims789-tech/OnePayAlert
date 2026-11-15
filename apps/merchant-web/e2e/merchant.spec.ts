@@ -427,3 +427,16 @@ test('signing out ends the session and protects every page', async ({ page }) =>
   const res = await page.request.get('/api/proxy/auth/me');
   expect(res.status()).toBe(401);
 });
+
+test('MysoftKH staff without a shop are sent to the admin console, not to empty pages', async ({ page }) => {
+  await signIn(page, BILLING_STAFF.email, BILLING_STAFF.password);
+  await expect(page.getByTestId('staff-notice')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This is a MysoftKH staff account' })).toBeVisible();
+  await expect(page.getByTestId('open-admin-console')).toHaveAttribute('href', 'https://admin.e2e.test');
+  // Every merchant page shows the same notice; none of them tries to load a shop's data.
+  await page.goto('/settings');
+  await expect(page.getByTestId('staff-notice')).toBeVisible();
+  await expect(page.getByText('You do not have permission to do this.')).toHaveCount(0);
+  await page.getByTestId('sign-out').click();
+  await expect(page).toHaveURL(/\/login$/);
+});

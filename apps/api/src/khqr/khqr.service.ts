@@ -20,7 +20,7 @@ import { IngestionService } from '../payments/ingestion.service';
 import { maskAccount } from '../payments/adapters';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { BAKONG_CLIENT, BakongError, SimulatedBakongClient, type BakongClient, type BakongTransaction } from './bakong.client';
+import { BAKONG_CLIENT, BakongError, type BakongClient, type BakongTransaction } from './bakong.client';
 import { encodeKhqr, khqrSafeText } from './khqr-encoder';
 
 /** A payment landing just after the code expired is still honoured for this long. */
@@ -170,10 +170,11 @@ export class KhqrService {
 
   /** Demo/development only: the "customer" pays with the simulated Bakong. */
   async simulatePaid(user: TenantUser, id: string): Promise<KhqrChargeDto> {
-    if (!(this.bakong instanceof SimulatedBakongClient)) throw apiError(HttpStatus.FORBIDDEN, 'FORBIDDEN');
+    const simulator = this.bakong.simulator?.() ?? null;
+    if (!simulator || this.config.isProduction) throw apiError(HttpStatus.FORBIDDEN, 'FORBIDDEN');
     const charge = await this.findOwned(user, id);
     if (charge.status !== 'PENDING') throw apiError(HttpStatus.CONFLICT, 'KHQR_CHARGE_NOT_PENDING');
-    this.bakong.markPaid(charge.md5, {
+    simulator.markPaid(charge.md5, {
       fromAccountId: 'demo_customer@bkrt',
       toAccountId: charge.bankConnection.externalAccountId,
       currency: charge.currency,

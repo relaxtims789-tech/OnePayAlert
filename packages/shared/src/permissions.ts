@@ -31,6 +31,8 @@ export const Permission = {
   PLATFORM_PLANS_MANAGE: 'platform.plans.manage',
   PLATFORM_DEVICES_MANAGE: 'platform.devices.manage',
   PLATFORM_AUDIT_READ: 'platform.audit.read',
+  /** Bakong token, mail server, invoice text: the settings that used to need the server's env file. */
+  PLATFORM_SETTINGS_MANAGE: 'platform.settings.manage',
 } as const;
 export type Permission = (typeof Permission)[keyof typeof Permission];
 
@@ -90,6 +92,7 @@ export const PLATFORM_ROLE_PERMISSIONS: Readonly<Record<PlatformRole, readonly P
     P.PLATFORM_PLANS_MANAGE,
     P.PLATFORM_DEVICES_MANAGE,
     P.PLATFORM_AUDIT_READ,
+    P.PLATFORM_SETTINGS_MANAGE,
   ],
   [PlatformRole.SUPPORT]: [P.PLATFORM_COMPANIES_READ, P.PLATFORM_AUDIT_READ],
 };

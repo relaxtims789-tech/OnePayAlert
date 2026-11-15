@@ -25,7 +25,10 @@ describe('permissions', () => {
     );
     expect(permissionsFor(null, PlatformRole.SUPPORT)).not.toContain(
       Permission.PLATFORM_COMPANIES_MANAGE,
-    );
+    );    // Only Super Admins change platform settings (Bakong token, mail server); nobody in a shop can.
+    expect(permissionsFor(null, PlatformRole.SUPER_ADMIN)).toContain(Permission.PLATFORM_SETTINGS_MANAGE);
+    expect(permissionsFor(null, PlatformRole.SUPPORT)).not.toContain(Permission.PLATFORM_SETTINGS_MANAGE);
+    expect(permissionsFor(CompanyRole.OWNER, null)).not.toContain(Permission.PLATFORM_SETTINGS_MANAGE);
   });
 
   it('never lets a role assign an equal or higher role', () => {

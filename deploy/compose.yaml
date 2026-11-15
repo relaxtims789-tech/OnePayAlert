@@ -123,6 +123,7 @@ services:
     environment:
       API_URL: http://api:4100
       REALTIME_URL: https://${API_DOMAIN}
+      ADMIN_URL: https://${ADMIN_DOMAIN}
       SESSION_COOKIE_PREFIX: op
     depends_on: [api]
     networks: [backend]

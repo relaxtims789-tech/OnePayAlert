@@ -8,6 +8,7 @@ import {
   BarChart3,
   Building2,
   ChevronDown,
+  ExternalLink,
   CreditCard,
   Landmark,
   LayoutDashboard,
@@ -42,7 +43,7 @@ const NAV: { href: string; label: MessageKey; icon: typeof LayoutDashboard; perm
   { href: '/settings', label: 'nav.settings', icon: Settings },
 ];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, adminUrl }: { children: ReactNode; adminUrl?: string }) {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
@@ -54,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const billing = useQuery({
     queryKey: ['billing'],
     queryFn: () => api.get<BillingOverviewDto>('billing'),
-    enabled: can(Permission.SUBSCRIPTION_READ),
+    enabled: Boolean(me.data?.activeCompanyId) && can(Permission.SUBSCRIPTION_READ),
     staleTime: 5 * 60_000,
   });
   const [switching, setSwitching] = useState(false);
@@ -120,6 +121,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const user = me.data;
+  // MysoftKH staff without a shop of their own (the Super Admin, support) can sign in, but every
+  // merchant page needs a shop: send them to the admin console instead of showing empty pages.
+  if (!user.activeCompanyId) {
+    return <StaffNotice adminUrl={adminUrl} onSignOut={() => void signOut()} />;
+  }
   const activeCompany = user.memberships.find((m) => m.companyId === user.activeCompanyId);
   const nav = NAV.filter((n) => !n.perm || can(n.perm));
 
@@ -245,6 +251,36 @@ function SubscriptionBanner({ overview, onBillingPage }: { overview: BillingOver
       <Link href="/billing" className="font-semibold underline-offset-2 hover:underline">
         {t('billing.viewBilling')} →
       </Link>
+    </div>
+  );
+}
+
+function StaffNotice({ adminUrl, onSignOut }: { adminUrl?: string; onSignOut: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="grid min-h-dvh place-items-center bg-surface px-4">
+      <div className="w-full max-w-md rounded-2xl border border-line bg-white p-6 text-center shadow-sm sm:p-8" data-testid="staff-notice">
+        <div className="mb-6 flex justify-center">
+          <Logo />
+        </div>
+        <h1 className="text-lg font-semibold text-ink">{t('staff.title')}</h1>
+        <p className="mt-2 text-sm text-ink-2">{t('staff.body')}</p>
+        <div className="mt-6 flex flex-col gap-2">
+          {adminUrl ? (
+            <a
+              href={adminUrl}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90"
+              data-testid="open-admin-console"
+            >
+              {t('staff.openAdmin')}
+              <ExternalLink className="size-4" aria-hidden />
+            </a>
+          ) : null}
+          <Button variant="ghost" onClick={onSignOut} icon={<LogOut className="size-4" />} data-testid="sign-out">
+            {t('common.signOut')}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

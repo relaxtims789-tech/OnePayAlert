@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { businessDate, dateTime, money, shortDate, startOfBusinessDay } from './format';
+import { businessDate, dateTime, fullDate, money, shortDate, startOfBusinessDay } from './format';
 
 describe('format', () => {
   it('uses Phnom Penh business days (UTC+7)', () => {
@@ -14,6 +14,13 @@ describe('format', () => {
     expect(dateTime('2026-11-11T07:12:00Z', 'km')).toBe('11 វិច្ឆិកា 14:12');
     expect(shortDate('2026-01-05', 'km')).toBe('5 មករា');
     expect(dateTime('2026-11-11T07:12:00Z', 'en')).toContain('14:12');
+  });
+
+  it('shows the year for far-off dates such as a token expiry', () => {
+    const iso = '2026-12-31T17:00:00.000Z'; // 1 Jan 2027, 00:00 in Phnom Penh
+    expect(fullDate(iso, 'en')).toBe('1 Jan 2027');
+    expect(fullDate(iso, 'km')).toBe('1 មករា 2027');
+    expect(fullDate(iso, 'zh')).toBe('2027年1月1日');
   });
 
   it('formats money from integer minor units', () => {

@@ -227,10 +227,11 @@ model User {
   createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  memberships         Membership[]
-  sessions            Session[]
-  pushTokens          PushToken[]
-  passwordResetTokens PasswordResetToken[]
+  memberships             Membership[]
+  sessions                Session[]
+  pushTokens              PushToken[]
+  passwordResetTokens     PasswordResetToken[]
+  platformSettingsUpdated PlatformSetting[]    @relation("PlatformSettingUpdatedBy")
 
   @@map("users")
 }
@@ -632,4 +633,19 @@ model RelayPhone {
   @@index([companyId])
   @@index([bankConnectionId])
   @@map("relay_phones")
+}
+
+/// Platform-wide settings managed in the admin console (Bakong token, mail server, invoice text).
+/// A row here overrides the environment variable of the same name; secrets are AES-GCM encrypted
+/// with the data encryption key. Not tenant data: no company_id, no row-level security.
+model PlatformSetting {
+  key         String   @id @db.VarChar(60)
+  value       String
+  encrypted   Boolean  @default(false)
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  updatedBy User? @relation("PlatformSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("platform_settings")
 }

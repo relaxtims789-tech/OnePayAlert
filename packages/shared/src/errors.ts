@@ -206,6 +206,23 @@ export const API_ERRORS = {
     zh: '请先选择一个“手机银行通知”连接。',
   },
   RELAY_PHONE_NOT_FOUND: { en: 'This phone is not set up for bank alerts.', km: 'ទូរស័ព្ទនេះមិនទាន់បានរៀបចំសម្រាប់ការជូនដំណឹងធនាគារទេ។', zh: '此手机尚未设置银行通知。' },
+  // ── Platform settings (admin console)
+  SETTING_BAKONG_TOKEN_INVALID: {
+    en: 'Paste the whole Bakong token: one line of at least 20 characters, without spaces.',
+    km: 'សូមបិទភ្ជាប់ token Bakong ទាំងមូល៖ មួយបន្ទាត់ យ៉ាងតិច 20 តួ គ្មានដកឃ្លា។',
+    zh: '请粘贴完整的 Bakong 令牌：一行、至少 20 个字符、不含空格。',
+  },
+  SETTING_SMTP_URL_INVALID: {
+    en: 'Enter the mail server as smtp://user:password@host:587 or smtps://user:password@host:465.',
+    km: 'សូមបញ្ចូលម៉ាស៊ីនមេអ៊ីមែលជាទម្រង់ smtp://user:password@host:587 ឬ smtps://user:password@host:465។',
+    zh: '请按 smtp://用户名:密码@主机:587 或 smtps://用户名:密码@主机:465 的格式输入邮件服务器。',
+  },
+  SETTING_TEXT_INVALID: {
+    en: 'Enter between 1 and {max} characters.',
+    km: 'សូមបញ្ចូលចន្លោះពី 1 ដល់ {max} តួអក្សរ។',
+    zh: '请输入 1 到 {max} 个字符。',
+  },
+  SETTING_NOT_FOUND: { en: 'Unknown setting', km: 'មិនស្គាល់ការកំណត់នេះទេ', zh: '未知的设置项' },
   KHQR_NOT_AVAILABLE: {
     en: 'KHQR payments are not available yet. MysoftKH has to connect the platform to Bakong first.',
     km: 'ការទូទាត់ KHQR មិនទាន់អាចប្រើបានទេ។ MysoftKH ត្រូវភ្ជាប់ប្រព័ន្ធទៅ Bakong ជាមុនសិន។',

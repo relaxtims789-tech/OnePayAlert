@@ -46,6 +46,7 @@ export default defineConfig({
       env: {
         API_URL: `http://localhost:${API_PORT}`,
         REALTIME_URL: `http://localhost:${API_PORT}`,
+        ADMIN_URL: 'https://admin.e2e.test',
         COOKIE_SECURE: 'false',
         NEXT_DIST_DIR: '.next-e2e',
       },

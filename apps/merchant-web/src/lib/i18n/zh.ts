@@ -421,4 +421,9 @@ export const zh: Messages = {
     when: '时间',
     readOnly: '只有所有者和管理员可以编辑公司资料。',
   },
+  staff: {
+    title: '这是 MysoftKH 员工账户',
+    body: '商户后台供商家使用，而此账户不属于任何商家。请在管理后台管理商家、播报音箱和账单。',
+    openAdmin: '打开管理后台',
+  },
 };

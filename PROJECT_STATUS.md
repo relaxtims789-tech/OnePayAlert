@@ -21,7 +21,16 @@ _Last updated: 2026-11-14 — CI green on GitHub, per-account sign-in lockout_
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the scope of each phase.
 
-**Test totals:** 82 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **111 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **28 browser e2e** (17 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **37 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+**Test totals:** 82 shared + 8 web-core + 44 API + 5 merchant-web + 6 admin-web unit tests, **111 API e2e** (real PostgreSQL as a non-superuser role with row-level security, Redis, RabbitMQ, plus an in-process MQTT broker) and **29 browser e2e** (18 merchant + 11 admin, Playwright in Chrome against the real stack), and for the mobile app **37 Flutter unit/widget tests** and **1 on-device integration test** (Android emulator against the real API). All passing.
+
+---
+
+## Staff accounts on the merchant site
+
+MysoftKH staff without a shop of their own (the Super Admin, support) could sign in on the merchant site and then saw empty pages and "You do not have permission to do this." Every merchant page needs a shop, so the merchant site now shows them a short notice instead: "This is a MysoftKH staff account", with a button to the admin console and Sign out (km/en/zh). The admin console address comes from `ADMIN_URL` at request time (Compose sets it from `ADMIN_DOMAIN`); without it, only Sign out is shown. Shop members are unaffected.
+
+**Tests:** a new browser test signs in as staff, sees the notice and the admin console link on every page, and signs out; the full merchant browser suite (18) passes.
+
 
 ---
 

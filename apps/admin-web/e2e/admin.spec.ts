@@ -197,9 +197,57 @@ test('shows system health and provider catalogue', async ({ page }) => {
   await expect(table.getByRole('row').filter({ hasText: 'Signed Webhook' })).toContainText('Live');
 });
 
+test('manages the Bakong token, mail server and invoice text from the console, without showing secrets again', async ({ page }) => {
+  const b64url = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  // Shaped like a Bakong token (a JWT), expiring in 2027.
+  const token = `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url({ data: { id: 'admin-e2e' }, exp: 1798761600 })}.YWRtaW4tZTJlLXNpZ25hdHVyZQ`;
+  await signIn(page, SUPER_ADMIN.email, SUPER_ADMIN.password);
+  await page.getByRole('link', { name: 'System settings' }).click();
+  await expect(page.getByRole('heading', { name: 'System settings' })).toBeVisible();
+  await expect(page.getByTestId('bakong-mode')).toHaveText('Demo: simulated');
+
+  const bakong = page.getByTestId('setting-bakong_api_token');
+  await bakong.getByTestId('setting-bakong_api_token-input').fill('not a token');
+  await bakong.getByTestId('setting-bakong_api_token-save').click();
+  await expect(bakong.getByRole('alert')).toContainText('Paste the whole Bakong token');
+
+  await bakong.getByTestId('setting-bakong_api_token-input').fill(token);
+  await bakong.getByTestId('setting-bakong_api_token-save').click();
+  await expect(page.getByTestId('bakong-mode')).toHaveText('Live: real Bakong');
+  await expect(page.getByTestId('bakong-expiry')).toContainText('2027');
+  await expect(bakong.getByTestId('setting-bakong_api_token-current')).toHaveText(`…${token.slice(-4)}`);
+  await expect(bakong.getByTestId('setting-bakong_api_token-source')).toHaveText('Saved here');
+  await expect(bakong.getByTestId('setting-bakong_api_token-input')).toHaveValue('');
+  await page.reload();
+  expect(await page.content()).not.toContain(token);
+
+  // The mail server's password is never shown; the test email goes to the signed-in admin.
+  const mail = page.getByTestId('setting-smtp_url');
+  await mail.getByTestId('setting-smtp_url-input').fill('smtps://alerts%40mysoftkh.com:Adm1n-Mail-Pass@smtp.example.com:465');
+  await mail.getByTestId('setting-smtp_url-save').click();
+  await expect(mail.getByTestId('setting-smtp_url-current')).toHaveText('smtps://alerts@mysoftkh.com@smtp.example.com:465');
+  expect(await page.content()).not.toContain('Adm1n-Mail-Pass');
+  await mail.getByTestId('setting-smtp_url-test').click();
+  await expect(mail.getByTestId('setting-smtp_url-result')).toContainText(`Test email sent to ${SUPER_ADMIN.email}`);
+
+  const invoice = page.getByTestId('setting-billing_payment_instructions');
+  const text = `Pay to ABA 000 111 222 (Mysoftkh), reference ${stamp}.`;
+  await invoice.getByTestId('setting-billing_payment_instructions-input').fill(text);
+  await invoice.getByTestId('setting-billing_payment_instructions-save').click();
+  await expect(invoice.getByTestId('setting-billing_payment_instructions-source')).toHaveText('Saved here');
+
+  // Back to the server's own values; nothing saved here is left behind for other tests.
+  for (const key of ['bakong_api_token', 'smtp_url', 'billing_payment_instructions']) {
+    await page.getByTestId(`setting-${key}-clear`).click();
+    await expect(page.getByTestId(`setting-${key}-clear`)).toHaveCount(0);
+  }
+  await expect(page.getByTestId('bakong-mode')).toHaveText('Demo: simulated');
+});
+
 test('support staff get a read-only console', async ({ page }) => {
   await signIn(page, SUPPORT.email, SUPPORT.password);
   await expect(page.getByText('Read-only (Support)').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'System settings' })).toHaveCount(0);
   await page.goto('/merchants');
   await page.getByRole('searchbox').fill(merchant.email);
   await page.getByRole('link', { name: merchant.company }).click();

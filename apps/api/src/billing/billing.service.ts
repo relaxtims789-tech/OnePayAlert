@@ -18,10 +18,10 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { apiError } from '../common/api-error';
 import type { AuthUser, TenantUser } from '../common/auth-user';
-import { AppConfig } from '../config/app-config.service';
 import { toSubscriptionDto } from '../platform/platform-companies.service';
 import { toPlanDto } from '../platform/platform-ops.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 import { minorToNumber } from '../transactions/transaction.mapper';
 import { EntitlementsService, USABLE_STATUSES } from './entitlements.service';
 
@@ -85,7 +85,7 @@ export class BillingService {
     private readonly prisma: PrismaService,
     private readonly entitlements: EntitlementsService,
     private readonly audit: AuditService,
-    private readonly config: AppConfig,
+    private readonly settings: PlatformSettingsService,
   ) {}
 
   // ───────────────────────── Merchant ─────────────────────────
@@ -116,7 +116,7 @@ export class BillingService {
         const { subscriberCount: _omit, ...rest } = toPlanDto(p);
         return rest;
       }),
-      paymentInstructions: this.config.get('BILLING_PAYMENT_INSTRUCTIONS'),
+      paymentInstructions: this.settings.get('BILLING_PAYMENT_INSTRUCTIONS') ?? '',
     };
   }
 

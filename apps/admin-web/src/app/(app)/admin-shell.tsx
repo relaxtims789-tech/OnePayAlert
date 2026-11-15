@@ -3,15 +3,16 @@
 import { Badge, ErrorState, LogoMark, Spinner, cn } from '@onepay/ui';
 import { session, setSessionExpiredHandler } from '@onepay/web-core/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Activity, Building2, Gauge, Landmark, LogOut, Menu, Receipt, ReceiptText, ScrollText, ShieldCheck, Speaker, UserCog, X } from 'lucide-react';
+import { Activity, Building2, Gauge, Landmark, LogOut, Menu, Receipt, ReceiptText, ScrollText, Settings2, ShieldCheck, Speaker, UserCog, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { LanguageSwitcher } from '@/components/common';
-import { errorText, useMe } from '@/lib/hooks';
+import { Permission } from '@onepay/shared';
+import { errorText, useCan, useMe } from '@/lib/hooks';
 import { useI18n, type MessageKey } from '@/lib/i18n';
 
-const NAV: { href: string; label: MessageKey; icon: typeof Gauge }[] = [
+const NAV: { href: string; label: MessageKey; icon: typeof Gauge; perm?: Permission }[] = [
   { href: '/overview', label: 'nav.overview', icon: Gauge },
   { href: '/merchants', label: 'nav.merchants', icon: Building2 },
   { href: '/plans', label: 'nav.plans', icon: ReceiptText },
@@ -20,6 +21,7 @@ const NAV: { href: string; label: MessageKey; icon: typeof Gauge }[] = [
   { href: '/providers', label: 'nav.providers', icon: Landmark },
   { href: '/audit', label: 'nav.audit', icon: ScrollText },
   { href: '/health', label: 'nav.health', icon: Activity },
+  { href: '/settings', label: 'nav.settings', icon: Settings2, perm: Permission.PLATFORM_SETTINGS_MANAGE },
   { href: '/account', label: 'nav.account', icon: UserCog },
 ];
 
@@ -28,6 +30,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const qc = useQueryClient();
   const me = useMe();
+  const can = useCan();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <X className="size-5" />
         </button>
       </div>
-      {NAV.map((item) => {
+      {NAV.filter((n) => !n.perm || can(n.perm)).map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
         return (

@@ -105,7 +105,9 @@ export class KhqrPoller implements OnApplicationBootstrap, OnApplicationShutdown
 
   onApplicationBootstrap(): void {
     const ms = this.config.get('KHQR_POLL_INTERVAL_MS');
-    if (ms <= 0 || this.khqr.status().mode === 'off') return;
+    // Always scheduled: a Bakong token saved later in the admin console switches polling on.
+    // pollOnce() does nothing while Bakong is off.
+    if (ms <= 0) return;
     this.timer = setInterval(() => void this.tick(), ms);
     this.timer.unref();
   }

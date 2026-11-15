@@ -1,6 +1,7 @@
 import { Logger, type Provider } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { AppConfig } from '../config/app-config.service';
+import { PlatformSettingsService } from '../settings/platform-settings.service';
 
 export const BAKONG_CLIENT = Symbol('BAKONG_CLIENT');
 
@@ -34,6 +35,8 @@ export interface BakongClient {
   paidAmong(md5s: string[]): Promise<Set<string>>;
   /** Whether Bakong knows the account (null = cannot tell, e.g. simulated). */
   accountExists(accountId: string): Promise<boolean | null>;
+  /** The demo simulator, when that is what is in use (never in production). */
+  simulator?(): SimulatedBakongClient | null;
 }
 
 const asText = (v: unknown): string | null => (v === null || v === undefined || v === '' ? null : String(v));
@@ -142,6 +145,10 @@ export class SimulatedBakongClient implements BakongClient {
   async accountExists(): Promise<boolean | null> {
     return null;
   }
+
+  simulator(): SimulatedBakongClient {
+    return this;
+  }
 }
 
 export class DisabledBakongClient implements BakongClient {
@@ -157,13 +164,74 @@ export class DisabledBakongClient implements BakongClient {
   }
 }
 
+/** Builds a live client for a token. A provider so tests can stand in for the real Bakong. */
+export const BAKONG_LIVE_FACTORY = Symbol('BAKONG_LIVE_FACTORY');
+export type BakongLiveFactory = (token: string) => BakongClient;
+
+export const bakongLiveFactoryProvider: Provider = {
+  provide: BAKONG_LIVE_FACTORY,
+  inject: [AppConfig],
+  useFactory:
+    (config: AppConfig): BakongLiveFactory =>
+    (token) =>
+      new LiveBakongClient(config.get('BAKONG_API_URL'), token),
+};
+
+/**
+ * Follows the Bakong token in use (saved in the admin console, else BAKONG_API_TOKEN): live with a
+ * token; without one, simulated in demo/development and off in production. A new token takes
+ * effect on the next call, without a restart.
+ */
+export class SwitchableBakongClient implements BakongClient {
+  private live: { token: string; client: BakongClient } | null = null;
+  private readonly simulated = new SimulatedBakongClient();
+  private readonly disabled = new DisabledBakongClient();
+
+  constructor(
+    private readonly token: () => string | undefined,
+    private readonly liveFactory: BakongLiveFactory,
+    private readonly production: boolean,
+  ) {}
+
+  current(): BakongClient {
+    const token = this.token();
+    if (!token) return this.production ? this.disabled : this.simulated;
+    if (this.live?.token !== token) this.live = { token, client: this.liveFactory(token) };
+    return this.live.client;
+  }
+
+  get mode(): BakongClient['mode'] {
+    return this.current().mode;
+  }
+
+  checkMd5(md5: string): Promise<BakongTransaction | null> {
+    return this.current().checkMd5(md5);
+  }
+
+  paidAmong(md5s: string[]): Promise<Set<string>> {
+    return this.current().paidAmong(md5s);
+  }
+
+  accountExists(accountId: string): Promise<boolean | null> {
+    return this.current().accountExists(accountId);
+  }
+
+  simulator(): SimulatedBakongClient | null {
+    const c = this.current();
+    return c instanceof SimulatedBakongClient ? c : null;
+  }
+
+  /** Demo/tests: same as `simulator().markPaid`. */
+  markPaid(md5: string, tx: Omit<BakongTransaction, 'hash' | 'occurredAt'>): BakongTransaction {
+    const sim = this.simulator();
+    if (!sim) throw new Error('Bakong is not simulated here');
+    return sim.markPaid(md5, tx);
+  }
+}
+
 export const bakongClientProvider: Provider = {
   provide: BAKONG_CLIENT,
-  inject: [AppConfig],
-  useFactory: (config: AppConfig): BakongClient => {
-    const token = config.get('BAKONG_API_TOKEN');
-    if (token) return new LiveBakongClient(config.get('BAKONG_API_URL'), token);
-    // Without a token, demo and development simulate Bakong; production cannot collect at all.
-    return config.isProduction ? new DisabledBakongClient() : new SimulatedBakongClient();
-  },
+  inject: [AppConfig, PlatformSettingsService, BAKONG_LIVE_FACTORY],
+  useFactory: (config: AppConfig, settings: PlatformSettingsService, liveFactory: BakongLiveFactory): BakongClient =>
+    new SwitchableBakongClient(() => settings.get('BAKONG_API_TOKEN'), liveFactory, config.isProduction),
 };

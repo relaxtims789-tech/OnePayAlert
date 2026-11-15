@@ -40,6 +40,16 @@ export function dateTime(iso: string, locale: Locale): string {
   }).format(d);
 }
 
+/** A day with its year, for dates that can be far away (expiry): "1 Jan 2027" / "1 មករា 2027" / "2027年1月1日". */
+export function fullDate(iso: string, locale: Locale): string {
+  const d = new Date(iso);
+  if (locale === 'km') {
+    const p = ppParts(d);
+    return `${p.day} ${KHMER_MONTHS[p.month]} ${p.year}`;
+  }
+  return new Intl.DateTimeFormat(TAGS[locale], { timeZone: BUSINESS_TZ, day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+}
+
 export function timeOnly(iso: string, locale: Locale): string {
   const p = ppParts(new Date(iso));
   return locale === 'km' ? `${p.hh}:${p.mm}:${p.ss}` : new Intl.DateTimeFormat(TAGS[locale], { timeZone: BUSINESS_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(iso));

@@ -41,13 +41,16 @@ The API runs as the database role `onepay_app`, which **row-level security** app
    set `IMAGE_TAG=1.0.0`. **Store the env file in a password manager**: losing
    `DATA_ENCRYPTION_KEY` makes stored bank credentials unreadable.
 4. Start: `docker compose -p onepay-prod -f deploy/compose.yaml --env-file deploy/env/production.env up -d`
-5. Create the first MysoftKH staff account (the password is read from the environment, not the
-   command line):
+5. Create the Super Admin: type its email and password (at least 12 characters) into
+   `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD` in `deploy/env/production.env` yourself, then run
    ```bash
-   read -rs STAFF_PASSWORD && export STAFF_PASSWORD
-   docker compose -p onepay-prod -f deploy/compose.yaml --env-file deploy/env/production.env \
-     run --rm -e STAFF_PASSWORD migrate sh -c 'DATABASE_URL=$MIGRATION_DATABASE_URL npx ts-node prisma/create-staff.ts ops@mysoftkh.com "Ops Admin" SUPER_ADMIN'
+   deploy/reset-admin.sh onepay-prod deploy/env/production.env
    ```
+   The password is read from the file, never from the command line. Run it again after changing
+   `SUPERADMIN_PASSWORD` to reset a forgotten password: it also ends the account's old sessions
+   and clears a sign-in lockout. Staff sign in on the admin console (`ADMIN_DOMAIN`), not the
+   merchant site. Further staff (`SUPPORT` or more `SUPER_ADMIN`s) are created with
+   `prisma/create-staff.ts`, which reads the password from `STAFF_PASSWORD`.
 6. Check `https://<API_DOMAIN>/api/v1/health` reports `"status":"ok"`.
 
 ## Releases
